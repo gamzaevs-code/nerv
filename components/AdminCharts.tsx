@@ -1,0 +1,3 @@
+'use client';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+export default function AdminCharts({ data }: { data: { period: string; users: number; tasks: number; transactions: number }[] }) { return <div style={{ width: '100%', height: 320 }}><ResponsiveContainer><BarChart data={data}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" /><YAxis /><Tooltip /><Legend /><Bar dataKey="users" fill="#00E5FF" /><Bar dataKey="tasks" fill="#007BFF" /><Bar dataKey="transactions" fill="#FFD700" /></BarChart></ResponsiveContainer></div>; }

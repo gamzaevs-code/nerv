@@ -1,0 +1,4 @@
+'use client';
+import { useRouter } from 'next/navigation';
+import { FormEvent } from 'react';
+export default function TelegramForm({ chatId }: { chatId?: string | null }) { const router = useRouter(); async function link(e: FormEvent<HTMLFormElement>) { e.preventDefault(); await fetch('/api/telegram/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget).entries())) }); router.refresh(); } async function unlink() { await fetch('/api/telegram/unlink', { method: 'POST' }); router.refresh(); } return <div className="stack"><form className="form" onSubmit={link}><input name="chatId" defaultValue={chatId || ''} placeholder="Telegram chat id" required /><button className="neon-button">Привязать</button></form><button className="neon-button-outline" onClick={unlink}>Отвязать</button></div>; }
