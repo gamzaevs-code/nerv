@@ -1,3 +1,7 @@
+import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
+import { prisma } from './prisma';
+
 export const AUTH_COOKIE_NAME = 'nerv_token';
 export const USER_ID_COOKIE_NAME = 'userId';
 
@@ -36,99 +40,72 @@ function parseCookieHeader(cookieHeader: string) {
   }, {});
 }
 
-function decodeJwtPayload(token: string): Partial<TokenPayload> | null {
-  try {
-    const [, payload] = token.split('.');
-    if (!payload) return null;
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = isBrowser()
-      ? window.atob(normalized)
-      : Buffer.from(normalized, 'base64').toString('utf8');
-    return JSON.parse(decoded) as Partial<TokenPayload>;
-  } catch {
-    return null;
-  }
-}
-
-function getNodeRequire() {
-  if (isBrowser()) return null;
-  // Keep Node-only modules out of client bundles. This module is intentionally universal.
-  return eval('require') as NodeRequire;
-}
-
-function getJwtModule() {
-  const nodeRequire = getNodeRequire();
-  if (!nodeRequire) return null;
-  return nodeRequire('jsonwebtoken') as typeof import('jsonwebtoken');
-}
-
 export function signAuthToken(payload: TokenPayload) {
-  const jwt = getJwtModule();
-  if (!jwt) throw new Error('signAuthToken can only be used on the server.');
+  if (isBrowser()) {
+    throw new Error('signAuthToken can only be used on the server.');
+  }
   return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyAuthToken(token: string): TokenPayload | null {
   try {
-    const jwt = getJwtModule();
-    if (!jwt) {
-      const decoded = decodeJwtPayload(token);
-      return typeof decoded?.userId === 'number' && typeof decoded?.email === 'string'
-        ? { userId: decoded.userId, email: decoded.email }
-        : null;
+    if (isBrowser()) {
+      // Клиент: декодируем JWT без проверки подписи
+      const [, payload] = token.split('.');
+      if (!payload) return null;
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = window.atob(normalized);
+      const parsed = JSON.parse(decoded) as Partial<TokenPayload>;
+      if (typeof parsed.userId === 'number' && typeof parsed.email === 'string') {
+        return { userId: parsed.userId, email: parsed.email };
+      }
+      return null;
     }
+    // Сервер: проверяем подпись
     return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
     return null;
   }
 }
 
+// ✅ Серверная версия (использует next/headers)
+export function getAuthUserIdFromCookiesServer() {
+  if (isBrowser()) return null;
+  const cookieStore = cookies();
+  const explicitUserId = cookieStore.get(USER_ID_COOKIE_NAME)?.value;
+  if (explicitUserId && !Number.isNaN(Number(explicitUserId))) {
+    return Number(explicitUserId);
+  }
+  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+  if (!token) return null;
+  const payload = verifyAuthToken(token);
+  return payload?.userId ?? null;
+}
+
+// ✅ Клиентская версия (использует document.cookie)
 export function getAuthUserIdFromCookiesClient() {
   if (!isBrowser()) return null;
-
   const parsedCookies = parseCookieHeader(document.cookie || '');
   const explicitUserId = parsedCookies[USER_ID_COOKIE_NAME];
   if (explicitUserId && !Number.isNaN(Number(explicitUserId))) {
     return Number(explicitUserId);
   }
-
   const token = parsedCookies[AUTH_COOKIE_NAME];
   if (!token) return null;
-
   const payload = verifyAuthToken(token);
   return payload?.userId ?? null;
 }
 
-export function getAuthUserIdFromCookiesServer() {
-  if (isBrowser()) return null;
-
-  const nodeRequire = getNodeRequire();
-  if (!nodeRequire) return null;
-
-  const { cookies } = nodeRequire('next/headers') as typeof import('next/headers');
-  const cookieStore = cookies();
-  const explicitUserId = cookieStore.get(USER_ID_COOKIE_NAME)?.value;
-
-  if (explicitUserId && !Number.isNaN(Number(explicitUserId))) {
-    return Number(explicitUserId);
-  }
-
-  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
-  if (!token) return null;
-
-  const payload = verifyAuthToken(token);
-  return payload?.userId ?? null;
-}
-
+// ✅ Универсальная версия (автоматически определяет среду)
 export function getAuthUserIdFromCookies() {
   return isBrowser() ? getAuthUserIdFromCookiesClient() : getAuthUserIdFromCookiesServer();
 }
 
+// ✅ Серверная версия getCurrentUser
 export async function getCurrentUserServer(): Promise<CurrentUser | null> {
+  if (isBrowser()) return null;
   const userId = getAuthUserIdFromCookiesServer();
   if (!userId) return null;
-
-  const { prisma } = await import('./prisma');
   return prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -146,6 +123,7 @@ export async function getCurrentUserServer(): Promise<CurrentUser | null> {
   });
 }
 
+// ✅ Клиентская версия getCurrentUser
 async function getCurrentUserClient(): Promise<CurrentUser | null> {
   if (!isBrowser()) return null;
   try {
@@ -158,6 +136,7 @@ async function getCurrentUserClient(): Promise<CurrentUser | null> {
   }
 }
 
+// ✅ Универсальная версия getCurrentUser
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   return isBrowser() ? getCurrentUserClient() : getCurrentUserServer();
 }
