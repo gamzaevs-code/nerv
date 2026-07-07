@@ -11,6 +11,8 @@
   "dependencies": {
     "@auth/core": "^0.41.2",
     "@auth/prisma-adapter": "^2.11.2",
+    "@mux/mux-node": "^14.1.1",
+    "@mux/mux-player-react": "^3.13.0",
     "@prisma/client": "^5.22.0",
     "@types/web-push": "^3.6.4",
     "@upstash/ratelimit": "^2.0.8",
@@ -48,6 +50,7 @@
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@types/speakeasy": "^2.0.10",
+    "dotenv": "^17.4.2",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.30",
     "jest": "^30.4.2",

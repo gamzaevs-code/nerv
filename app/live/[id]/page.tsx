@@ -1,40 +1,68 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Header from '@/components/Header';
-import LiveStreamPlayer from '@/components/LiveStreamPlayer';
-import LiveStreamControls from '@/components/LiveStreamControls';
-import OnlineIndicator from '@/components/OnlineIndicator';
+import MuxPlayerWrapper from '@/components/MuxPlayer';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LiveDetailPage({ params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  if (!Number.isInteger(id) || id <= 0) notFound();
-  const [user, stream] = await Promise.all([
-    getCurrentUser(),
-    prisma.liveStream.findUnique({
-      where: { id },
-      include: { user: { select: { id: true, name: true, level: true, reputation: true, presence: true } } },
-    }),
-  ]);
+export default async function LiveStreamPage({ params }: { params: { id: string } }) {
+  const user = await getCurrentUser();
+  if (!user) redirect('/login');
+
+  const stream = await prisma.liveStream.findUnique({
+    where: { id: Number(params.id) },
+    include: { user: { select: { name: true } } },
+  });
+
   if (!stream) notFound();
-  const owner = user?.id === stream.userId || user?.role === 'admin';
+
+  // Для демонстрации используем заглушку
+  // В реальном проекте нужно получить playbackId из Mux Live Stream
+  const playbackId = stream.streamKey || '';
 
   return (
     <>
       <Header simplified />
       <main className="page-shell">
-        <section className="glass-card neon-border page-hero-card stack">
-          <span className="badge">{stream.isActive ? '● LIVE' : 'Завершён'}</span>
-          <h1 className="neon-text">{stream.title}</h1>
-          <p>{stream.description || 'Прямой эфир игрока НЕРВ.'}</p>
-          <p className="muted">Ведущий: {stream.user.name} · зрителей: {stream.viewers} <OnlineIndicator presence={stream.user.presence} /></p>
-        </section>
-        <section className="two-grid">
-          <LiveStreamPlayer id={stream.id} title={stream.title} playbackUrl={stream.playbackUrl} />
-          {owner ? <LiveStreamControls streamId={stream.id} streamKey={stream.streamKey} /> : <article className="glass-card"><p className="neon-text">Живой пульс системы</p><p>Подключение к production-видео выполняется через Mux/Cloudflare Stream.</p></article>}
-        </section>
+        <div className="glass-card stack">
+          <span className="badge">🔴 LIVE</span>
+          <h1>{stream.title}</h1>
+          <p className="muted">
+            Ведущий: {stream.user.name} · Зрителей: {stream.viewers || 0}
+          </p>
+
+          {playbackId ? (
+            <MuxPlayerWrapper
+              playbackId={playbackId}
+              title={stream.title}
+              autoPlay
+              muted={false}
+            />
+          ) : (
+            <div
+              style={{
+                width: '100%',
+                height: 400,
+                background: 'linear-gradient(135deg, #0A0A0F, #1A1A2E)',
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                border: '1px solid rgba(139,92,246,0.2)',
+              }}
+            >
+              <p style={{ fontSize: 48 }}>🎥</p>
+              <p className="muted">Прямой эфир (заглушка)</p>
+              <p className="muted" style={{ fontSize: 12 }}>
+                ID стрима: {stream.id}
+              </p>
+            </div>
+          )}
+
+          {stream.description && <p>{stream.description}</p>}
+        </div>
       </main>
     </>
   );
