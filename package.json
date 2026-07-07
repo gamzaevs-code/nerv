@@ -31,6 +31,7 @@
     "react-loading-skeleton": "^3.5.0",
     "react-swipeable": "^7.0.2",
     "recharts": "^3.8.1",
+    "resend": "^6.17.1",
     "speakeasy": "^2.0.0",
     "stripe": "^22.2.0",
     "use-sound": "^5.0.0",
