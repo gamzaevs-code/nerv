@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 
 export const AUTH_COOKIE_NAME = 'nerv_token';
@@ -50,7 +49,6 @@ export function signAuthToken(payload: TokenPayload) {
 export function verifyAuthToken(token: string): TokenPayload | null {
   try {
     if (isBrowser()) {
-      // Клиент: декодируем JWT без проверки подписи
       const [, payload] = token.split('.');
       if (!payload) return null;
       const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
@@ -61,25 +59,32 @@ export function verifyAuthToken(token: string): TokenPayload | null {
       }
       return null;
     }
-    // Сервер: проверяем подпись
     return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
     return null;
   }
 }
 
-// ✅ Серверная версия (использует next/headers)
+// ✅ Серверная версия (использует next/headers через динамический импорт)
 export function getAuthUserIdFromCookiesServer() {
   if (isBrowser()) return null;
-  const cookieStore = cookies();
-  const explicitUserId = cookieStore.get(USER_ID_COOKIE_NAME)?.value;
-  if (explicitUserId && !Number.isNaN(Number(explicitUserId))) {
-    return Number(explicitUserId);
+
+  try {
+    // ✅ Динамический импорт next/headers только на сервере
+    const { cookies } = require('next/headers');
+    const cookieStore = cookies();
+    const explicitUserId = cookieStore.get(USER_ID_COOKIE_NAME)?.value;
+    if (explicitUserId && !Number.isNaN(Number(explicitUserId))) {
+      return Number(explicitUserId);
+    }
+    const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+    if (!token) return null;
+    const payload = verifyAuthToken(token);
+    return payload?.userId ?? null;
+  } catch (error) {
+    console.error('Error loading next/headers:', error);
+    return null;
   }
-  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
-  if (!token) return null;
-  const payload = verifyAuthToken(token);
-  return payload?.userId ?? null;
 }
 
 // ✅ Клиентская версия (использует document.cookie)
@@ -96,7 +101,7 @@ export function getAuthUserIdFromCookiesClient() {
   return payload?.userId ?? null;
 }
 
-// ✅ Универсальная версия (автоматически определяет среду)
+// ✅ Универсальная версия
 export function getAuthUserIdFromCookies() {
   return isBrowser() ? getAuthUserIdFromCookiesClient() : getAuthUserIdFromCookiesServer();
 }

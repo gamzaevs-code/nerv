@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export const runtime = 'nodejs';
+export const runtime = 'nodejs';  // ✅ Есть
 
 export async function POST() {
   const user = await getCurrentUser();
