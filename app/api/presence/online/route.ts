@@ -31,4 +31,6 @@ export async function POST() {
   }
 
   return NextResponse.json({ presence });
+  export const runtime = 'nodejs';
 }
+

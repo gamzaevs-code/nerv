@@ -19,7 +19,7 @@ async function sendWithResend(input: SendEmailInput) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: getFromAddress(),
+      from: process.env.RESEND_FROM || 'onboarding@resend.dev',
       to: input.to,
       subject: input.subject,
       text: input.text,
