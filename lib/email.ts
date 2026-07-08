@@ -7,11 +7,17 @@ type SendEmailInput = {
   html?: string;
 };
 
-function getFromAddress() {
-  return process.env.RESEND_FROM || process.env.SMTP_FROM || 'НЕРВ <no-reply@nerv.local>';
+function getResendFrom(): string {
+  return process.env.RESEND_FROM || 'onboarding@resend.dev';
+}
+
+function getFromAddress(): string {
+  return process.env.RESEND_FROM || process.env.SMTP_FROM || 'onboarding@resend.dev';
 }
 
 async function sendWithResend(input: SendEmailInput) {
+  const from = getResendFrom();
+
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -19,7 +25,7 @@ async function sendWithResend(input: SendEmailInput) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM || 'onboarding@resend.dev',
+      from,
       to: input.to,
       subject: input.subject,
       text: input.text,
@@ -29,6 +35,7 @@ async function sendWithResend(input: SendEmailInput) {
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
+    console.error(`Resend error ${response.status}: ${body}`);
     throw new Error(`Resend error ${response.status}: ${body}`);
   }
 }
@@ -38,9 +45,13 @@ async function sendWithSmtp(input: SendEmailInput) {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),
     secure: process.env.SMTP_SECURE === 'true',
-    auth: process.env.SMTP_USER && (process.env.SMTP_PASSWORD || process.env.SMTP_PASS)
-      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS }
-      : undefined,
+    auth:
+      process.env.SMTP_USER && (process.env.SMTP_PASSWORD || process.env.SMTP_PASS)
+        ? {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '',
+          }
+        : undefined,
   });
 
   await transporter.sendMail({
@@ -63,6 +74,7 @@ export async function sendEmail(input: SendEmailInput) {
     return;
   }
 
+  // Fallback: логируем в консоль (для разработки)
   console.log('[email stub]', {
     to: input.to,
     subject: input.subject,
@@ -70,6 +82,7 @@ export async function sendEmail(input: SendEmailInput) {
     html: input.html,
   });
 }
+
 export async function sendVerificationEmail(email: string, token: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const verifyUrl = `${appUrl}/verify-email?token=${token}`;
