@@ -64,23 +64,20 @@ async function sendWithSmtp(input: SendEmailInput) {
 }
 
 export async function sendEmail(input: SendEmailInput) {
-  if (process.env.RESEND_API_KEY) {
-    await sendWithResend(input);
-    return;
-  }
-
-  if (process.env.SMTP_HOST) {
-    await sendWithSmtp(input);
-    return;
-  }
-
-  // Fallback: логируем в консоль (для разработки)
+  // ✅ ВРЕМЕННО ОТКЛЮЧАЕМ РЕАЛЬНУЮ ОТПРАВКУ
   console.log('[email stub]', {
     to: input.to,
     subject: input.subject,
     text: input.text,
     html: input.html,
   });
+  return;
+
+  // if (process.env.RESEND_API_KEY) {
+  //   await sendWithResend(input);
+  //   return;
+  // }
+  // ...
 }
 
 export async function sendVerificationEmail(email: string, token: string) {
