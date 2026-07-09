@@ -3,6 +3,8 @@ import Header from '@/components/Header';
 import ExportButton from '@/components/ExportButton';
 import { getCurrentUser } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ExportPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');

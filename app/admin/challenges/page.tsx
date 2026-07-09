@@ -4,6 +4,8 @@ import { AdminChallengeForm, DeleteChallengeButton } from '@/components/AdminCha
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminChallengesPage() {
   const admin = await requireAdmin(); if (!admin) redirect('/dashboard');
   const challenges = await prisma.challenge.findMany({ orderBy: { createdAt: 'desc' } });

@@ -4,6 +4,8 @@ import AdminInviteForm from '@/components/AdminInviteForm';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminInvitesPage() {
   const admin = await requireAdmin(); if (!admin) redirect('/dashboard');
   const invites = await prisma.inviteCode.findMany({ orderBy: { createdAt: 'desc' } });

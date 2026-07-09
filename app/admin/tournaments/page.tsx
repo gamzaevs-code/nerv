@@ -4,6 +4,8 @@ import AdminTournamentForm from '@/components/AdminTournamentForm';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminTournamentsPage() {
   const admin = await requireAdmin();
   if (!admin) redirect('/dashboard');

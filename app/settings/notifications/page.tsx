@@ -3,6 +3,8 @@ import Header from '@/components/Header';
 import PushSettings from '@/components/PushSettings';
 import { getCurrentUser } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export default async function NotificationSettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
