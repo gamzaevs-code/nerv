@@ -61,32 +61,14 @@ export default function LiveCreatePage() {
           <form onSubmit={onSubmit} className="stack">
             <label>
               Название
-              <input
-                name="title"
-                type="text"
-                placeholder="Мой супер-стрим"
-                required
-                className="neon-input"
-              />
+              <input name="title" type="text" required className="neon-input" />
             </label>
             <label>
               Описание
-              <textarea
-                name="description"
-                placeholder="Расскажи, о чём стрим"
-                className="neon-input"
-                rows={3}
-              />
+              <textarea name="description" className="neon-input" rows={3} />
             </label>
-
             {error && <div className="error">{error}</div>}
-
-            <button
-              type="submit"
-              className="neon-button"
-              disabled={loading}
-              style={{ width: '100%' }}
-            >
+            <button type="submit" className="neon-button" disabled={loading}>
               {loading ? 'Создаём...' : '🚀 Начать стрим'}
             </button>
           </form>
@@ -95,67 +77,21 @@ export default function LiveCreatePage() {
             <h2>✅ Стрим создан!</h2>
             <p className="muted">{streamData.title}</p>
 
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.4)',
-                padding: 20,
-                borderRadius: 12,
-                textAlign: 'left',
-              }}
-            >
-              <p style={{ marginBottom: 8 }}>
-                <strong>📡 Сервер (RTMPS):</strong>
-              </p>
-              <code
-                style={{
-                  display: 'block',
-                  background: '#0A0A0F',
-                  padding: 10,
-                  borderRadius: 6,
-                  wordBreak: 'break-all',
-                  fontSize: 14,
-                  marginBottom: 16,
-                }}
-              >
+            <div style={{ background: 'rgba(0,0,0,0.4)', padding: 20, borderRadius: 12, textAlign: 'left' }}>
+              <p><strong>📡 Сервер (RTMPS):</strong></p>
+              <code style={{ display: 'block', background: '#0A0A0F', padding: 10, borderRadius: 6, wordBreak: 'break-all' }}>
                 {streamData.rtmpsUrl.split('/app')[0]}
               </code>
 
-              <p style={{ marginBottom: 8 }}>
-                <strong>🔑 Ключ потока (streamKey):</strong>
-              </p>
-              <code
-                style={{
-                  display: 'block',
-                  background: '#0A0A0F',
-                  padding: 10,
-                  borderRadius: 6,
-                  wordBreak: 'break-all',
-                  fontSize: 14,
-                  marginBottom: 16,
-                }}
-              >
+              <p style={{ marginTop: 12 }}><strong>🔑 Ключ потока (streamKey):</strong></p>
+              <code style={{ display: 'block', background: '#0A0A0F', padding: 10, borderRadius: 6, wordBreak: 'break-all' }}>
                 {streamData.streamKey}
               </code>
             </div>
 
-            <p className="muted" style={{ fontSize: 14 }}>
-              Вставь эти данные в OBS → Настройки → Стрим
-            </p>
-
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button
-                className="neon-button"
-                onClick={() => router.push(`/live/${streamData.id}`)}
-              >
-                👀 Смотреть стрим
-              </button>
-              <button
-                className="neon-button-outline"
-                onClick={() => setStreamData(null)}
-              >
-                🔁 Создать ещё
-              </button>
-            </div>
+            <button className="neon-button" onClick={() => router.push(`/live/${streamData.id}`)}>
+              👀 Смотреть стрим
+            </button>
           </div>
         )}
       </div>
