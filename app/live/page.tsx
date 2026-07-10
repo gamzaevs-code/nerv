@@ -1,51 +1,96 @@
-import Link from 'next/link';
 import Header from '@/components/Header';
-import LiveStreamCard from '@/components/LiveStreamCard';
-import OnlineList from '@/components/OnlineList';
+import Link from 'next/link';
+import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-type Stream = {
-  id: number;
-  title: string;
-  description: string | null;
-  viewers: number;
-  startedAt: Date;
-  user: { id: number; name: string; avatar: string | null; reputation: number };
-};
-
 export default async function LivePage() {
-  let streams: Stream[] = [];
-  let dbUnavailable = false;
-  try {
-    streams = await prisma.liveStream.findMany({
-      where: { isActive: true },
-      include: { user: { select: { id: true, name: true, avatar: true, reputation: true } } },
-      orderBy: { startedAt: 'desc' },
-    });
-  } catch (error) {
-    dbUnavailable = true;
-    console.warn('LivePage DB fallback:', error);
-  }
+  const user = await getCurrentUser();
+
+  // Показываем только активные стримы (заглушка)
+  const streams = await prisma.liveStream.findMany({
+    where: { isActive: true },
+    include: { user: { select: { name: true } } },
+    orderBy: { startedAt: 'desc' },
+  });
 
   return (
     <>
-      <Header simplified />
+      <Header simplified={!user} />
       <main className="page-shell">
-        <section className="glass-card neon-border page-hero-card stack">
-          <span className="badge">Live / Stream</span>
-          <h1 className="neon-text">Прямой эфир</h1>
-          <p>Смотрите активные трансляции игроков и подключайтесь к живому пульсу НЕРВ.</p>
-          <div className="nav-links"><Link className="neon-button" href="/live/create">Запустить эфир</Link></div>
-          {dbUnavailable && <p className="muted">Локальная база PostgreSQL не подключена. На Vercel подключите Neon DATABASE_URL.</p>}
-        </section>
-        <section className="two-grid">
-          <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
-            {streams.length ? streams.map((stream) => <LiveStreamCard key={stream.id} stream={stream} />) : <article className="glass-card"><p>Сейчас нет активных эфиров.</p></article>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h1>🎥 Прямые эфиры</h1>
+          {user && (
+            <Link href="/live/create" className="neon-button">
+              ➕ Создать стрим
+            </Link>
+          )}
+        </div>
+
+        {streams.length === 0 ? (
+          <div className="glass-card stack" style={{ textAlign: 'center', padding: 48 }}>
+            <p style={{ fontSize: 48 }}>📡</p>
+            <h2>Стримов пока нет</h2>
+            <p className="muted">
+              {user ? 'Стань первым — создай свой стрим!' : 'Войдите, чтобы создавать стримы.'}
+            </p>
+            {user && (
+              <Link href="/live/create" className="neon-button" style={{ marginTop: 16 }}>
+                🚀 Создать стрим
+              </Link>
+            )}
           </div>
-          <OnlineList />
-        </section>
+        ) : (
+          <div className="streams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            {streams.map((stream) => (
+              <Link
+                key={stream.id}
+                href={`/live/${stream.id}`}
+                className="glass-card"
+                style={{ textDecoration: 'none', transition: 'transform 0.2s ease', display: 'block' }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <div style={{ position: 'relative' }}>
+                  <div
+                    style={{
+                      width: '100%',
+                      height: 180,
+                      background: 'linear-gradient(135deg, #1a1a2e, #0A0A0F)',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid rgba(139,92,246,0.2)',
+                    }}
+                  >
+                    <span style={{ fontSize: 48 }}>🔴</span>
+                  </div>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      background: '#EF4444',
+                      color: 'white',
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    LIVE
+                  </span>
+                </div>
+                <h3 style={{ marginTop: 12 }}>{stream.title}</h3>
+                <p className="muted" style={{ fontSize: 14 }}>
+                  {stream.user.name} · 👁️ {stream.viewers || 0}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
       </main>
     </>
   );
