@@ -1,23 +1,96 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 
 export default function CreateTaskForm() {
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+
+  // ✅ Запись видео
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const MAX_RECORDING_TIME = 60; // 60 секунд
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: true,
+      });
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9,opus',
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const file = new File([blob], `recording-${Date.now()}.webm`, { type: 'video/webm' });
+        setVideoFile(file);
+        setVideoPreview(URL.createObjectURL(file));
+
+        // Останавливаем все треки
+        stream.getTracks().forEach((track) => track.stop());
+
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setRecordingTime(0);
+        setIsRecording(false);
+      };
+
+      mediaRecorder.start(1000);
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => {
+          if (prev >= MAX_RECORDING_TIME) {
+            stopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      setError('Не удалось получить доступ к камере. Разрешите доступ и попробуйте снова.');
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
     setMessage('');
-    setUploadProgress(0);
 
     const formData = new FormData(event.currentTarget);
     const title = formData.get('title') as string;
@@ -25,77 +98,53 @@ export default function CreateTaskForm() {
     const reward = Number(formData.get('reward'));
 
     try {
-      // 1. Проверка видео
       if (!videoFile) {
-        setError('Пожалуйста, загрузите видео.');
+        setError('Запишите или загрузите видео.');
         setLoading(false);
         return;
       }
 
-      // 2. Получение Upload URL от Mux
-      const uploadResponse = await fetch('/api/video/upload-url', {
+      // Загружаем видео на сервер
+      const uploadFormData = new FormData();
+      uploadFormData.append('video', videoFile);
+
+      const uploadRes = await fetch(`/api/tasks/${Date.now()}/upload`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        body: uploadFormData,
       });
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        setError(errorData?.error || 'Не удалось получить ссылку для загрузки');
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
+        setError(uploadData.error || 'Не удалось загрузить видео');
         setLoading(false);
         return;
       }
 
-      const { url: uploadUrl, uploadId } = await uploadResponse.json();
-
-      // 3. Загрузка видео на Mux
-      const xhr = new XMLHttpRequest();
-      xhr.open('PUT', uploadUrl, true);
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const progress = Math.round((e.loaded / e.total) * 100);
-          setUploadProgress(progress);
-        }
-      };
-
-      await new Promise((resolve, reject) => {
-        xhr.onload = () => {
-          if (xhr.status === 200) resolve(null);
-          else reject(new Error(`Upload failed with status ${xhr.status}`));
-        };
-        xhr.onerror = () => reject(new Error('Upload failed'));
-        xhr.send(videoFile);
-      });
-
-      // 4. Создание задания
-      const createResponse = await fetch('/api/tasks', {
+      // Создаём задание
+      const createRes = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
           description,
           reward,
-          videoUploadId: uploadId,
+          videoUrl: uploadData.videoUrl,
         }),
       });
 
-      const data = await createResponse.json();
+      const createData = await createRes.json();
 
-      if (!createResponse.ok) {
-        setError(data?.error || 'Не удалось создать задание.');
+      if (!createRes.ok) {
+        setError(createData.error || 'Не удалось создать задание');
         setLoading(false);
         return;
       }
 
+      setMessage('✅ Задание создано!');
       event.currentTarget.reset();
       setVideoFile(null);
       setVideoPreview(null);
-      setUploadProgress(0);
-      setMessage('✅ Задание создано! Видео загружено и доступно игрокам.');
-      router.refresh();
-
-      // Перенаправление через 2 секунды
-      setTimeout(() => router.push('/dashboard'), 2000);
+      router.push('/dashboard');
     } catch (err) {
       console.error('Create task error:', err);
       setError('Не удалось создать задание. Попробуйте позже.');
@@ -107,14 +156,12 @@ export default function CreateTaskForm() {
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Проверка размера (макс 100MB)
       if (file.size > 100 * 1024 * 1024) {
         setError('Видео не должно превышать 100 MB');
         return;
       }
       setVideoFile(file);
       setVideoPreview(URL.createObjectURL(file));
-      setError('');
     }
   };
 
@@ -122,88 +169,56 @@ export default function CreateTaskForm() {
     <form className="form" onSubmit={onSubmit}>
       <label>
         Название
-        <input
-          name="title"
-          placeholder="Пробежать 1 км"
-          required
-          className="neon-input"
-        />
+        <input name="title" placeholder="Пробежать 1 км" required className="neon-input" />
       </label>
 
       <label>
         Описание
-        <textarea
-          name="description"
-          placeholder="Опиши условия задания"
-          className="neon-input"
-          rows={3}
-        />
+        <textarea name="description" placeholder="Опиши условия задания" className="neon-input" rows={3} />
       </label>
 
       <label>
         Награда (₽)
-        <input
-          name="reward"
-          type="number"
-          min="1"
-          step="1"
-          defaultValue="100"
-          required
-          className="neon-input"
-        />
+        <input name="reward" type="number" min="1" defaultValue="100" required className="neon-input" />
       </label>
 
-      <label>
-        Видео (MP4, до 100MB)
-        <input
-          type="file"
-          accept="video/mp4,video/webm,video/quicktime"
-          onChange={handleVideoChange}
-          required
-          className="neon-input"
-        />
+      <label style={{ marginTop: 8 }}>
+        <span style={{ display: 'block', marginBottom: 8 }}>📹 Запись видео</span>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={isRecording ? 'neon-button' : 'neon-button-outline'}
+            onClick={isRecording ? stopRecording : startRecording}
+            style={{ flex: 1 }}
+          >
+            {isRecording ? `⏹️ Остановить (${recordingTime}s / ${MAX_RECORDING_TIME}s)` : '🎥 Записать с камеры'}
+          </button>
+          <label className="neon-button-outline" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+            📁 Загрузить файл
+            <input
+              type="file"
+              accept="video/*"
+              onChange={handleVideoChange}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
       </label>
 
       {videoPreview && (
         <div style={{ marginTop: 8 }}>
-          <video
-            src={videoPreview}
-            controls
-            style={{ width: '100%', maxHeight: 300, borderRadius: 8 }}
-          />
+          <video src={videoPreview} controls style={{ width: '100%', maxHeight: 300, borderRadius: 8 }} />
           <p className="muted" style={{ fontSize: 12 }}>
             {videoFile?.name} ({(videoFile?.size / 1024 / 1024).toFixed(2)} MB)
           </p>
         </div>
       )}
 
-      {uploadProgress > 0 && uploadProgress < 100 && (
-        <div style={{ marginTop: 8 }}>
-          <p className="muted">Загрузка видео: {uploadProgress}%</p>
-          <div style={{ width: '100%', height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>
-            <div
-              style={{
-                width: `${uploadProgress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #8B5CF6, #6D28D9)',
-                borderRadius: 4,
-                transition: 'width 0.3s ease',
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       {error && <div className="error">{error}</div>}
       {message && <div className="success">{message}</div>}
 
-      <button
-        className="neon-button"
-        disabled={loading}
-        type="submit"
-        style={{ width: '100%' }}
-      >
-        {loading ? 'Создаём...' : 'Создать задание'}
+      <button className="neon-button" disabled={loading} type="submit" style={{ width: '100%' }}>
+        {loading ? 'Создаём...' : '🚀 Создать задание'}
       </button>
     </form>
   );
