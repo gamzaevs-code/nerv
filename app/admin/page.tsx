@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/Header';
-import { BalanceForm, BanButton, DeleteTaskButton } from '@/components/AdminActions';
 import { requireAdmin } from '@/lib/admin';
 import { prisma } from '@/lib/prisma';
 
@@ -12,9 +12,7 @@ export default async function AdminPage() {
   const admin = await requireAdmin();
   if (!admin) redirect('/dashboard');
 
-  const [users, tasks, userCount, taskCount, txDay, txWeek, txMonth] = await Promise.all([
-    prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }),
-    prisma.task.findMany({ include: { creator: { select: { name: true } }, player: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 100 }),
+  const [userCount, taskCount, txDay, txWeek, txMonth] = await Promise.all([
     prisma.user.count(),
     prisma.task.count(),
     prisma.transaction.count({ where: { createdAt: { gte: daysAgo(1) } } }),
@@ -29,32 +27,33 @@ export default async function AdminPage() {
         <section className="glass-card stack">
           <span className="badge">Admin</span>
           <h1>Админ-панель</h1>
-          <p>Пользователи, задания, блокировки и баланс.</p>
+          <p>Управление платформой НЕРВ.</p>
+          <div className="nav-links" style={{ marginTop: 8 }}>
+            <Link className="neon-button" href="/admin/dashboard">📊 Дашборд</Link>
+            <Link className="neon-button" href="/admin/users">👥 Пользователи</Link>
+            <Link className="neon-button" href="/admin/tasks">📋 Задания</Link>
+            <Link className="neon-button" href="/admin/reports">🚩 Жалобы</Link>
+            <Link className="neon-button" href="/admin/challenges">🏅 Челленджи</Link>
+            <Link className="neon-button" href="/admin/invites">🔑 Инвайты</Link>
+            <Link className="neon-button" href="/admin/translations">🌍 Переводы</Link>
+            <Link className="neon-button" href="/admin/tournaments">🏆 Турниры</Link>
+            <Link className="neon-button" href="/admin/support">📞 Поддержка</Link>
+            <Link className="neon-button" href="/admin/backup">💾 Бэкап</Link>
+          </div>
         </section>
-        <section className="grid">
-          <article className="glass-card"><p className="muted">Пользователей</p><div className="metric">{userCount}</div></article>
-          <article className="glass-card"><p className="muted">Заданий</p><div className="metric">{taskCount}</div></article>
-          <article className="glass-card"><p className="muted">Транзакции день/неделя/месяц</p><div className="metric">{txDay}/{txWeek}/{txMonth}</div></article>
+        <section className="grid" style={{ marginTop: 18 }}>
+          <article className="glass-card"><p className="stat-label">Пользователей</p><div className="metric">{userCount}</div></article>
+          <article className="glass-card"><p className="stat-label">Заданий</p><div className="metric">{taskCount}</div></article>
+          <article className="glass-card"><p className="stat-label">Транзакции</p><div className="metric">{txDay} / {txWeek} / {txMonth}</div></article>
         </section>
         <section className="glass-card stack" style={{ marginTop: 18 }}>
-          <h2 className="neon-title">Пользователи</h2>
-          {users.map((user) => (
-            <div className="glass-card stack" key={user.id}>
-              <strong>{user.name} · {user.email}</strong>
-              <p className="muted">role: {user.role} · balance: {user.balance} ₽ · {user.isBanned ? 'banned' : 'active'}</p>
-              <div className="nav-links"><BanButton userId={user.id} isBanned={user.isBanned} /><BalanceForm userId={user.id} /></div>
-            </div>
-          ))}
-        </section>
-        <section className="glass-card stack" style={{ marginTop: 18 }}>
-          <h2 className="neon-title">Задания</h2>
-          {tasks.map((task) => (
-            <div className="glass-card stack" key={task.id}>
-              <strong>{task.title}</strong>
-              <p className="muted">status: {task.status} · reward: {task.reward} ₽ · creator: {task.creator.name} · player: {task.player?.name || '—'}</p>
-              <DeleteTaskButton taskId={task.id} />
-            </div>
-          ))}
+          <h2 className="neon-title">Быстрые действия</h2>
+          <div className="nav-links">
+            <Link className="neon-button" href="/admin/dashboard">📊 Статистика</Link>
+            <Link className="neon-button" href="/admin/users">👥 Список пользователей</Link>
+            <Link className="neon-button" href="/admin/tasks">📋 Список заданий</Link>
+            <Link className="neon-button" href="/admin/reports">🚩 Жалобы (модерация)</Link>
+          </div>
         </section>
       </main>
     </>
