@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 export default async function LivePage() {
   const user = await getCurrentUser();
 
-  // Показываем только активные стримы (заглушка)
   const streams = await prisma.liveStream.findMany({
     where: { isActive: true },
     include: { user: { select: { name: true } } },
