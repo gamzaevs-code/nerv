@@ -1,3 +1,4 @@
+// app/live/[id]/page.tsx
 import { notFound, redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import LiveStreamPlayer from '@/components/LiveStreamPlayer';
@@ -29,8 +30,7 @@ export default async function LiveStreamPage({ params }: { params: { id: string 
           </p>
 
           <LiveStreamPlayer
-            id={stream.id}
-            playbackUrl={stream.playbackUrl}
+            playbackId={stream.playbackUrl}
             title={stream.title}
           />
 

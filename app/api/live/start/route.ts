@@ -1,49 +1,64 @@
-import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { notifyUser } from '@/lib/notifications';
-import { sendPushToRole } from '@/lib/push';
+import Mux from '@mux/mux-node';
 
 export const runtime = 'nodejs';
 
-type StartLiveBody = { title?: string; description?: string; playbackUrl?: string };
+// Инициализация Mux
+const mux = new Mux({
+  tokenId: process.env.MUX_TOKEN_ID!,
+  tokenSecret: process.env.MUX_TOKEN_SECRET!,
+});
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (user.role !== 'player' && user.role !== 'admin') {
-    return NextResponse.json({ error: 'Прямой эфир доступен только игрокам.' }, { status: 403 });
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as StartLiveBody;
-  const title = body.title?.trim() || `Эфир ${user.name}`;
-  const description = body.description?.trim() || null;
-  const streamKey = crypto.randomBytes(18).toString('hex');
+  try {
+    const body = await request.json();
+    const { title, description } = body;
 
-  await prisma.liveStream.updateMany({
-    where: { userId: user.id, isActive: true },
-    data: { isActive: false, endedAt: new Date() },
-  });
+    // Создаём Mux Live Stream
+    const liveStream = await mux.video.liveStreams.create({
+      playback_policy: 'public',
+      new_asset_settings: {
+        playback_policy: 'public',
+      },
+      reconnect_window: 60,
+    });
 
-  const stream = await prisma.liveStream.create({
-    data: {
-      userId: user.id,
-      title,
-      description,
-      streamKey,
-      playbackUrl: body.playbackUrl?.trim() || null,
-    },
-    include: { user: { select: { id: true, name: true } } },
-  });
+    // Сохраняем в БД
+    const stream = await prisma.liveStream.create({
+      data: {
+        userId: user.id,
+        title: title || 'Прямой эфир',
+        description: description || '',
+        streamKey: liveStream.stream_key,
+        playbackUrl: liveStream.playback_ids?.[0]?.id || '',
+        isActive: true,
+        startedAt: new Date(),
+      },
+    });
 
-  const message = `Игрок ${user.name} начал прямой эфир: ${title}`;
-  const players = await prisma.user.findMany({ where: { isBanned: false, id: { not: user.id } }, select: { id: true } });
-  await Promise.all([
-    ...players.map((target) => notifyUser(target.id, 'live_started', message, `/live/${stream.id}`)),
-    sendPushToRole('viewer', { title: 'Прямой эфир', body: message, url: `/live/${stream.id}` }),
-    sendPushToRole('player', { title: 'Прямой эфир', body: message, url: `/live/${stream.id}` }),
-  ]);
-
-  return NextResponse.json({ stream }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      stream: {
+        id: stream.id,
+        title: stream.title,
+        streamKey: liveStream.stream_key,
+        playbackId: stream.playbackUrl,
+        // Для OBS
+        rtmpsUrl: `rtmps://live.mux.com/app/${liveStream.stream_key}`,
+      },
+    });
+  } catch (error) {
+    console.error('Mux Live start error:', error);
+    return NextResponse.json(
+      { error: 'Не удалось запустить стрим' },
+      { status: 500 }
+    );
+  }
 }

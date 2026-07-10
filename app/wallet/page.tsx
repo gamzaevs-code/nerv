@@ -1,14 +1,86 @@
-import { redirect } from 'next/navigation';
-import Header from '@/components/Header';
-import { DepositForm, WithdrawForm } from '@/components/WalletForms';
-import { getCurrentUser } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useEffect, useState } from 'react';
 
-export default async function WalletPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect('/login');
-  const transactions = await prisma.transaction.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 100 });
-  return <><Header simplified /><main className="page-shell"><section className="glass-card stack"><span className="badge">Wallet</span><h1>Кошелёк</h1><div className="balance">{user.balance} ₽</div></section><section className="two-grid"><article className="glass-card stack"><h2>Пополнение</h2><DepositForm /></article><article className="glass-card stack"><h2>Вывод</h2><WithdrawForm /></article></section><section className="glass-card stack" style={{ marginTop: 18 }}><h2 className="neon-title">История</h2>{transactions.map(t => <p key={t.id}>{t.createdAt.toLocaleString('ru-RU')} · {t.type} · {t.amount} ₽ · {t.status} · {t.reason}</p>)}</section></main></>;
+export default function WalletPage() {
+  const [balance, setBalance] = useState(0);
+  const [amount, setAmount] = useState(100);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchBalance();
+  }, []);
+
+  async function fetchBalance() {
+    const res = await fetch('/api/profile');
+    const data = await res.json();
+    if (data.user) setBalance(data.user.balance);
+  }
+
+  async function handleWithdraw() {
+    setLoading(true);
+    setMessage('');
+    setError('');
+
+    try {
+      const res = await fetch('/api/wallet/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Ошибка вывода');
+        return;
+      }
+
+      setMessage(data.message || '✅ Вывод выполнен!');
+      setBalance(prev => prev - amount);
+    } catch {
+      setError('Ошибка сети');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="page-shell">
+      <div className="glass-card stack" style={{ maxWidth: 400, margin: '0 auto' }}>
+        <h1>💳 Кошелёк</h1>
+        <p style={{ fontSize: 32, fontWeight: 'bold' }}>{balance} ₽</p>
+
+        <label>
+          Сумма вывода
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            min={1}
+            max={balance}
+            className="neon-input"
+          />
+        </label>
+
+        {error && <div className="error">{error}</div>}
+        {message && <div className="success">{message}</div>}
+
+        <button
+          className="neon-button"
+          onClick={handleWithdraw}
+          disabled={loading || amount > balance || amount < 1}
+          style={{ width: '100%' }}
+        >
+          {loading ? 'Обработка...' : '💸 Вывести'}
+        </button>
+
+        <p className="muted" style={{ fontSize: 12 }}>
+          ⚠️ Демо-режим. Деньги списываются с баланса без реального вывода.
+        </p>
+      </div>
+    </main>
+  );
 }
