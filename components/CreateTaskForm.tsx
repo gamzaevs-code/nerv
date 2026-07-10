@@ -13,12 +13,9 @@ export default function CreateTaskForm() {
 
   // ✅ Запись видео
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const MAX_RECORDING_TIME = 60; // 60 секунд
+  const streamRef = useRef<MediaStream | null>(null);
 
   async function startRecording() {
     try {
@@ -30,6 +27,8 @@ export default function CreateTaskForm() {
         },
         audio: true,
       });
+
+      streamRef.current = stream;
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp9,opus',
@@ -50,30 +49,16 @@ export default function CreateTaskForm() {
         setVideoFile(file);
         setVideoPreview(URL.createObjectURL(file));
 
-        // Останавливаем все треки
-        stream.getTracks().forEach((track) => track.stop());
-
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
         }
-        setRecordingTime(0);
+
         setIsRecording(false);
       };
 
       mediaRecorder.start(1000);
       setIsRecording(true);
-      setRecordingTime(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => {
-          if (prev >= MAX_RECORDING_TIME) {
-            stopRecording();
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1000);
     } catch (err) {
       console.error('Error starting recording:', err);
       setError('Не удалось получить доступ к камере. Разрешите доступ и попробуйте снова.');
@@ -191,7 +176,7 @@ export default function CreateTaskForm() {
             onClick={isRecording ? stopRecording : startRecording}
             style={{ flex: 1 }}
           >
-            {isRecording ? `⏹️ Остановить (${recordingTime}s / ${MAX_RECORDING_TIME}s)` : '🎥 Записать с камеры'}
+            {isRecording ? '⏹️ Остановить запись' : '🎥 Записать с камеры'}
           </button>
           <label className="neon-button-outline" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
             📁 Загрузить файл
@@ -204,6 +189,15 @@ export default function CreateTaskForm() {
           </label>
         </div>
       </label>
+
+      {isRecording && (
+        <div style={{ marginTop: 8, padding: 12, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid #EF4444' }}>
+          <p style={{ color: '#EF4444', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#EF4444', animation: 'pulse 1s infinite' }} />
+            🔴 Идёт запись... Нажмите "Остановить запись", когда закончите.
+          </p>
+        </div>
+      )}
 
       {videoPreview && (
         <div style={{ marginTop: 8 }}>
@@ -220,6 +214,13 @@ export default function CreateTaskForm() {
       <button className="neon-button" disabled={loading} type="submit" style={{ width: '100%' }}>
         {loading ? 'Создаём...' : '🚀 Создать задание'}
       </button>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+      `}</style>
     </form>
   );
 }
