@@ -1,13 +1,16 @@
 {
-  "name": "Нерв",
-  "short_name": "Нерв",
-  "description": "Неоновая платформа игровых заданий",
+  "name": "НЕРВ",
+  "short_name": "НЕРВ",
+  "description": "Неоновая платформа игровых заданий, голосований и наград.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait",
   "background_color": "#0B0F19",
   "theme_color": "#8B5CF6",
+  "categories": ["entertainment", "games", "social"],
+  "lang": "ru-RU",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -21,5 +24,6 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": []
 }

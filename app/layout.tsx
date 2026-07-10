@@ -18,11 +18,25 @@ export const metadata: Metadata = {
   description: 'НЕРВ — технологичная игровая платформа заданий, голосований и наград.',
   applicationName: 'НЕРВ',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'НЕРВ',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: [
     { rel: 'icon', url: '/favicon.ico' },
     { rel: 'icon', type: 'image/svg+xml', url: '/logo.svg' },
-    { rel: 'apple-touch-icon', url: '/icon-192x192.png' },
+    { rel: 'apple-touch-icon', sizes: '192x192', url: '/icon-192x192.png' },
+    { rel: 'apple-touch-icon', sizes: '512x512', url: '/icon-512x512.png' },
+    { rel: 'apple-touch-icon-precomposed', url: '/icon-192x192.png' },
+    { rel: 'mask-icon', url: '/logo.svg', color: '#8B5CF6' },
   ],
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   openGraph: {
     title: 'НЕРВ',
     description: 'Игровые задания, видео-доказательства, голосования и награды в едином контуре.',
@@ -33,6 +47,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#8B5CF6',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
