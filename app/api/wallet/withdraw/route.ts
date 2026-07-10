@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 
+const MIN_WITHDRAW = 100;
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -13,6 +15,10 @@ export async function POST(request: Request) {
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: 'Сумма должна быть больше 0' }, { status: 400 });
+    }
+
+    if (amount < MIN_WITHDRAW) {
+      return NextResponse.json({ error: `Минимальная сумма вывода: ${MIN_WITHDRAW} ₽` }, { status: 400 });
     }
 
     // Проверяем баланс
@@ -36,7 +42,7 @@ export async function POST(request: Request) {
           userId: user.id,
           type: 'withdrawal',
           amount: -amount,
-          status: 'completed', // Заглушка: сразу завершена
+          status: 'completed',
           reason: `Вывод средств (заглушка) — ${amount} ₽`,
         },
       }),

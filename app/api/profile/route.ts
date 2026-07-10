@@ -4,6 +4,35 @@ import { getAuthUserIdFromCookies } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
+// ✅ Нужно для WalletPage и других клиентов
+export async function GET() {
+  const userId = getAuthUserIdFromCookies();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      balance: true,
+      isModerator: true,
+      level: true,
+      experience: true,
+      theme: true,
+      avatar: true,
+      bio: true,
+      location: true,
+      createdAt: true,
+    },
+  });
+
+  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  return NextResponse.json({ user });
+}
+
 export async function PATCH(request: Request) {
   const userId = getAuthUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
