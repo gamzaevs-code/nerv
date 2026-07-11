@@ -28,7 +28,6 @@ export default function HeaderClient({
         <>
           <Link className="neon-button-outline" href="/dashboard" onClick={() => setOpen(false)}>📊 Дашборд</Link>
           <LanguageThemeControls />
-          <button className="neon-button-outline theme-toggle" type="button" onClick={toggleTheme} aria-label="Тёмный неоновый режим" title="Тёмный неоновый режим">✦</button>
           <Link className="neon-button-outline" href="/login" onClick={() => setOpen(false)}>🔑 Войти</Link>
           <Link className="neon-button" href="/signup" onClick={() => setOpen(false)}>📝 Зарегистрироваться</Link>
         </>
@@ -80,7 +79,6 @@ export default function HeaderClient({
       <>
         {commonItems}
         <LanguageThemeControls />
-        <button className="neon-button-outline theme-toggle" type="button" onClick={toggleTheme} aria-label="Тёмный неоновый режим" title="Тёмный неоновый режим">✦</button>
         {roleItems()}
         <LogoutButton />
       </>
