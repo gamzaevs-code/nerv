@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import CreateTaskForm from '@/components/CreateTaskForm';
-import ResendVerificationForm from '@/components/ResendVerificationForm';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -29,30 +28,7 @@ export default async function CreatePage() {
 
         <section className="two-grid">
           <article className="glass-card">
-            {user.emailVerified ? (
-              <CreateTaskForm />
-            ) : (
-              <div
-                className="stack"
-                style={{ textAlign: 'center', padding: '40px 20px' }}
-              >
-                <div
-                  className="badge"
-                  style={{
-                    margin: '0 auto',
-                    borderColor: 'var(--warning)',
-                    color: 'var(--warning)',
-                  }}
-                >
-                  ✗ Email не подтверждён
-                </div>
-                <h2 className="neon-title">Подтвердите email</h2>
-                <p>
-                  Чтобы создавать задания, необходимо подтвердить ваш email.
-                </p>
-                <ResendVerificationForm email={user.email || ''} />
-              </div>
-            )}
+            <CreateTaskForm />
           </article>
 
           <article className="glass-card stack">
