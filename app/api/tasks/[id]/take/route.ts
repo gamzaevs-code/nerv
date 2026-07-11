@@ -8,6 +8,18 @@ export async function POST(_request: Request, { params }: { params: { id: string
   const userId = getAuthUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // ✅ Только игроки могут брать задания
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (!user || user.role !== 'player') {
+    return NextResponse.json(
+      { error: 'Только игроки могут брать задания.' },
+      { status: 403 }
+    );
+  }
+
   const id = Number(params.id);
   if (!Number.isInteger(id)) {
     return NextResponse.json({ error: 'Некорректный id задания.' }, { status: 400 });

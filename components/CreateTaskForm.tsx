@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { FormEvent, useRef, useState } from 'react';
 
-export default function CreateTaskForm() {
+export default function CreateTaskForm({ role }: { role: string }) {
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -83,6 +83,34 @@ export default function CreateTaskForm() {
     const reward = Number(formData.get('reward'));
 
     try {
+      // ❌ Если viewer — не проверяем и не отправляем видео
+      if (role !== 'player') {
+        // Создаём задание без видео
+        const createRes = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            description,
+            reward,
+          }),
+        });
+
+        const createData = await createRes.json();
+
+        if (!createRes.ok) {
+          setError(createData.error || 'Не удалось создать задание');
+          setLoading(false);
+          return;
+        }
+
+        setMessage('✅ Задание создано!');
+        event.currentTarget.reset();
+        router.push('/dashboard');
+        return;
+      }
+
+      // ✅ Для player — нужно видео
       if (!videoFile) {
         setError('Запишите или загрузите видео.');
         setLoading(false);
@@ -167,45 +195,50 @@ export default function CreateTaskForm() {
         <input name="reward" type="number" min="1" defaultValue="100" required className="neon-input" />
       </label>
 
-      <label style={{ marginTop: 8 }}>
-        <span style={{ display: 'block', marginBottom: 8 }}>📹 Запись видео</span>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className={isRecording ? 'neon-button' : 'neon-button-outline'}
-            onClick={isRecording ? stopRecording : startRecording}
-            style={{ flex: 1 }}
-          >
-            {isRecording ? '⏹️ Остановить запись' : '🎥 Записать с камеры'}
-          </button>
-          <label className="neon-button-outline" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
-            📁 Загрузить файл
-            <input
-              type="file"
-              accept="video/*"
-              onChange={handleVideoChange}
-              style={{ display: 'none' }}
-            />
+      {/* ✅ Блок с видео — только для player (выполнение задания) */}
+      {role === 'player' && (
+        <>
+          <label style={{ marginTop: 8 }}>
+            <span style={{ display: 'block', marginBottom: 8 }}>📹 Запись видео</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={isRecording ? 'neon-button' : 'neon-button-outline'}
+                onClick={isRecording ? stopRecording : startRecording}
+                style={{ flex: 1 }}
+              >
+                {isRecording ? '⏹️ Остановить запись' : '🎥 Записать с камеры'}
+              </button>
+              <label className="neon-button-outline" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+                📁 Загрузить файл
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoChange}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
           </label>
-        </div>
-      </label>
 
-      {isRecording && (
-        <div style={{ marginTop: 8, padding: 12, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid #EF4444' }}>
-          <p style={{ color: '#EF4444', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#EF4444', animation: 'pulse 1s infinite' }} />
-            🔴 Идёт запись... Нажмите "Остановить запись", когда закончите.
-          </p>
-        </div>
-      )}
+          {isRecording && (
+            <div style={{ marginTop: 8, padding: 12, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid #EF4444' }}>
+              <p style={{ color: '#EF4444', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#EF4444', animation: 'pulse 1s infinite' }} />
+                🔴 Идёт запись... Нажмите "Остановить запись", когда закончите.
+              </p>
+            </div>
+          )}
 
-      {videoPreview && (
-        <div style={{ marginTop: 8 }}>
-          <video src={videoPreview} controls style={{ width: '100%', maxHeight: 300, borderRadius: 8 }} />
-          <p className="muted" style={{ fontSize: 12 }}>
-            {videoFile?.name} ({(videoFile?.size / 1024 / 1024).toFixed(2)} MB)
-          </p>
-        </div>
+          {videoPreview && (
+            <div style={{ marginTop: 8 }}>
+              <video src={videoPreview} controls style={{ width: '100%', maxHeight: 300, borderRadius: 8 }} />
+              <p className="muted" style={{ fontSize: 12 }}>
+                {videoFile?.name} ({(videoFile?.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {error && <div className="error">{error}</div>}

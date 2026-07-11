@@ -12,6 +12,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ Только viewer и admin могут создавать задания
+    if (user.role !== 'viewer' && user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Только зрители могут создавать задания.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { title, description, reward, videoUrl } = body;
 
@@ -21,18 +29,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    // ❌ ВРЕМЕННО ОТКЛЮЧАЕМ ПРОВЕРКУ EMAIL
-    // const currentUser = await prisma.user.findUnique({
-    //   where: { id: user.id },
-    //   select: { emailVerified: true },
-    // });
-    // if (!currentUser?.emailVerified) {
-    //   return NextResponse.json(
-    //     { error: 'Подтвердите email, чтобы создавать задания.' },
-    //     { status: 403 }
-    //   );
-    // }
 
     // Проверяем баланс
     const creator = await prisma.user.findUnique({
