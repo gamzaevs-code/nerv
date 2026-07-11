@@ -10,8 +10,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const userId = getAuthUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const current = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
-  if (!current?.emailVerified) return NextResponse.json({ error: 'Подтвердите email, чтобы голосовать.' }, { status: 403 });
+  // ❌ ВРЕМЕННО ОТКЛЮЧАЕМ ПРОВЕРКУ EMAIL
+  // const current = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
+  // if (!current?.emailVerified) return NextResponse.json({ error: 'Подтвердите email, чтобы голосовать.' }, { status: 403 });
 
   const id = Number(params.id);
   const { value } = await request.json();

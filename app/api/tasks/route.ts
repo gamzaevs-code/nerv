@@ -1,68 +1,95 @@
 import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getAuthUserIdFromCookies } from '@/lib/auth';
-import { addExperience, checkAchievements } from '@/lib/gamification';
-import { sendPushToRole } from '@/lib/push';
+import { logAction } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const q = searchParams.get('q')?.trim();
-  const minReward = Number(searchParams.get('minReward') || 0);
-  const maxReward = Number(searchParams.get('maxReward') || 0);
-  const sort = searchParams.get('sort') || 'new';
-  const page = Math.max(1, Number(searchParams.get('page') || 1));
-  const take = 20;
+export async function POST(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const where = {
-    status: 'open',
-    ...(q ? { title: { contains: q } } : {}),
-    ...((minReward > 0 || maxReward > 0) ? { reward: { ...(minReward > 0 ? { gte: minReward } : {}), ...(maxReward > 0 ? { lte: maxReward } : {}) } } : {}),
-  };
+    const body = await request.json();
+    const { title, description, reward, videoUrl } = body;
 
-  const orderBy = sort === 'reward_asc'
-    ? { reward: 'asc' as const }
-    : sort === 'reward_desc'
-      ? { reward: 'desc' as const }
-      : { createdAt: 'desc' as const };
+    if (!title || !reward) {
+      return NextResponse.json(
+        { error: 'Название и награда обязательны.' },
+        { status: 400 }
+      );
+    }
 
-  const [tasks, total] = await Promise.all([
-    prisma.task.findMany({
-      where,
-      include: { creator: { select: { name: true } } },
-      orderBy,
-      skip: (page - 1) * take,
-      take,
-    }),
-    prisma.task.count({ where }),
-  ]);
+    // ❌ ВРЕМЕННО ОТКЛЮЧАЕМ ПРОВЕРКУ EMAIL
+    // const currentUser = await prisma.user.findUnique({
+    //   where: { id: user.id },
+    //   select: { emailVerified: true },
+    // });
+    // if (!currentUser?.emailVerified) {
+    //   return NextResponse.json(
+    //     { error: 'Подтвердите email, чтобы создавать задания.' },
+    //     { status: 403 }
+    //   );
+    // }
 
-  return NextResponse.json({ tasks, total, page, pages: Math.max(1, Math.ceil(total / take)) });
+    // Проверяем баланс
+    const creator = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { balance: true },
+    });
+
+    if (!creator || creator.balance < reward) {
+      return NextResponse.json(
+        { error: 'Недостаточно средств для создания задания.' },
+        { status: 400 }
+      );
+    }
+
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description,
+        reward: Number(reward),
+        creatorId: user.id,
+        status: 'open',
+        videoUrl: videoUrl || null,
+      },
+    });
+
+    await logAction(user.id, 'task_created', { taskId: task.id }, request);
+
+    return NextResponse.json({ success: true, task }, { status: 201 });
+  } catch (error) {
+    console.error('Create task error:', error);
+    return NextResponse.json(
+      { error: 'Не удалось создать задание.' },
+      { status: 500 }
+    );
+  }
 }
 
-export async function POST(request: Request) {
-  const userId = getAuthUserIdFromCookies();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
 
-  // TODO: временно отключено по требованию — вернуть после стабилизации email verification.
-  // const current = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
-  // if (!current?.emailVerified) return NextResponse.json({ error: 'Подтвердите email, чтобы создавать задания.' }, { status: 403 });
+    const tasks = await prisma.task.findMany({
+      where: status ? { status } : {},
+      include: {
+        creator: { select: { name: true, id: true } },
+        player: { select: { name: true, id: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  const { title, description, reward } = await request.json();
-  const normalizedTitle = String(title || '').trim();
-  const normalizedReward = Number(reward);
-
-  if (!normalizedTitle) return NextResponse.json({ error: 'Название обязательно.' }, { status: 400 });
-  if (!Number.isInteger(normalizedReward) || normalizedReward <= 0) {
-    return NextResponse.json({ error: 'Награда должна быть положительным целым числом.' }, { status: 400 });
+    return NextResponse.json({ tasks });
+  } catch (error) {
+    console.error('Get tasks error:', error);
+    return NextResponse.json(
+      { error: 'Не удалось получить задания.' },
+      { status: 500 }
+    );
   }
-
-  const task = await prisma.task.create({
-    data: { title: normalizedTitle, description: String(description || '').trim() || null, reward: normalizedReward, creatorId: userId },
-  });
-  await addExperience(userId, 20);
-  await checkAchievements(userId);
-  await sendPushToRole('player', { title: 'Новое задание', body: task.title, url: `/task/${task.id}` });
-  return NextResponse.json(task, { status: 201 });
 }
