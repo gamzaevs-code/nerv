@@ -64,6 +64,24 @@ export default async function DashboardPage() {
         </section>
 
         <div style={{ marginTop: 18 }}><QuickActions role={user.role} /></div>
+        {/* ✅ Активные задания — для игрока */}
+{isPlayer && playingTasks.filter(t => t.status === 'taken').length > 0 && (
+  <section className="glass-card stack" style={{ marginTop: 18 }}>
+    <span className="badge" style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22C55E' }}>🎯 Активные задания</span>
+    <h2 className="neon-title">Загрузите видео</h2>
+    <div className="grid">
+      {playingTasks.filter(t => t.status === 'taken').map(task => (
+        <Link key={task.id} href={`/task/${task.id}`} className="glass-card stack" style={{ textDecoration: 'none' }}>
+          <strong>{task.title}</strong>
+          <p className="muted">Награда: {task.reward} ₽</p>
+          <span className="neon-button" style={{ padding: '4px 12px', fontSize: 12 }}>
+            📹 Загрузить видео
+          </span>
+        </Link>
+      ))}
+    </div>
+  </section>
+)}
         <DashboardTabs stats={{ earned, completed: fullUser?.completedTasksCount ?? 0, reputation: fullUser?.reputation ?? 0 }} tasks={tabTasks} votes={votes} chart={chart} />
       </main>
     </>

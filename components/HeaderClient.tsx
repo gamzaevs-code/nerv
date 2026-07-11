@@ -58,7 +58,7 @@ export default function HeaderClient({
         case 'player':
           return (
             <>
-              <Link className="neon-button-outline" href="/my-tasks" onClick={() => setOpen(false)}>📋 Мои задания</Link>
+              <Link className="neon-button" href="/my-tasks" onClick={() => setOpen(false)}>📋 Мои задания</Link>
               <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
             </>
           );

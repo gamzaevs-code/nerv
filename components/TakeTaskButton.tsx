@@ -19,7 +19,8 @@ export default function TakeTaskButton({ taskId }: { taskId: number }) {
         setError(data?.error || 'Не удалось взять задание.');
         return;
       }
-      router.refresh();
+      // ✅ Перенаправляем на страницу задания
+      router.push(`/task/${taskId}`);
     } catch {
       setError('Ошибка сети.');
     } finally {
@@ -29,8 +30,8 @@ export default function TakeTaskButton({ taskId }: { taskId: number }) {
 
   return (
     <div className="form">
-      <button className="neon-button" type="button" onClick={takeTask} disabled={loading}>
-        {loading ? 'Берём...' : 'Взять задание'}
+      <button className="neon-button" type="button" onClick={takeTask} disabled={loading} style={{ width: '100%' }}>
+        {loading ? '🎯 Берём...' : '🎯 Взять задание'}
       </button>
       {error && <div className="error">{error}</div>}
     </div>
