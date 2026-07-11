@@ -64,7 +64,15 @@ export default async function TasksPage({ searchParams }: { searchParams: { q?: 
               <p>{task.description || 'Без описания'}</p>
               <p className="muted">Создатель: {task.creator.name}</p>
               <div className="balance">{task.reward} ₽</div>
-              <TakeTaskButton taskId={task.id} />
+              
+              {/* ✅ ПРОВЕРКА РОЛИ: только игроки могут брать задания */}
+              {user.role === 'player' ? (
+                <TakeTaskButton taskId={task.id} />
+              ) : (
+                <p className="muted" style={{ textAlign: 'center', marginTop: 8 }}>
+                  Только игроки могут брать задания
+                </p>
+              )}
             </article>
           ))}
         </section>
