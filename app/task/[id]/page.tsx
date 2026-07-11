@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import BetForm from '@/components/BetForm';
 import ReportButton from '@/components/ReportButton';
+import TakeTaskButton from '@/components/TakeTaskButton';
 import MuxPlayerWrapper from '@/components/MuxPlayer';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -23,16 +24,6 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   });
   if (!task) notFound();
 
-  // Получаем playbackId из Mux
-  // Если у тебя в задании хранится assetId или uploadId, нужно получить playbackId
-  // Вариант 1: если у тебя есть поле playbackId
-  // const playbackId = task.playbackId;
-
-  // Вариант 2: если у тебя только assetId — нужно запросить playbackId
-  // const asset = await mux.video.assets.get(task.assetId);
-  // const playbackId = asset.playback_ids?.[0]?.id;
-
-  // Для демонстрации используем заглушку
   const playbackId = task.videoUrl?.split('/').pop() || '';
 
   return (
@@ -47,6 +38,11 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
             Создатель: {task.creator.name} · Игрок: {task.player?.name || '—'} · статус: {task.status}
           </p>
           <div className="balance">{task.reward} ₽</div>
+
+          {/* Кнопка "Взять задание" — только для игроков, если статус open */}
+          {user.role === 'player' && task.status === 'open' && (
+            <TakeTaskButton taskId={task.id} />
+          )}
 
           {/* Mux плеер */}
           {playbackId ? (
@@ -69,7 +65,12 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
         <section className="two-grid">
           <article className="glass-card stack">
             <h2>Ставка</h2>
-            <BetForm taskId={task.id} />
+            {/* Форма ставок — только для зрителей */}
+            {user.role === 'viewer' ? (
+              <BetForm taskId={task.id} />
+            ) : (
+              <p className="muted">Только зрители могут делать ставки</p>
+            )}
           </article>
           <article className="glass-card stack">
             <h2>Ставки</h2>
