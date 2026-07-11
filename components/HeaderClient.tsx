@@ -9,34 +9,83 @@ import LanguageThemeControls from './LanguageThemeControls';
 import NervLogo from './NervLogo';
 import BackButton from './BackButton';
 
-export default function HeaderClient({ simplified = false, authenticated = false }: { simplified?: boolean; authenticated?: boolean }) {
+export default function HeaderClient({
+  simplified = false,
+  authenticated = false,
+  role = null,
+}: {
+  simplified?: boolean;
+  authenticated?: boolean;
+  role?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const { toggleTheme } = useTheme();
 
-  const renderMenu = () => (
-    <>
-      <Link className="neon-button-outline" href="/dashboard" onClick={() => setOpen(false)}>Дашборд</Link>
-      <Link className="neon-button-outline" href="/leaderboard" onClick={() => setOpen(false)}>⚡ Рейтинг</Link>
-      <Link className="neon-button-outline" href="/voting" onClick={() => setOpen(false)}>Голосование</Link>
-      <Link className="neon-button-outline" href="/live" onClick={() => setOpen(false)}>🔴 Прямой эфир</Link>
-      <LanguageThemeControls />
-      <button className="neon-button-outline theme-toggle" type="button" onClick={toggleTheme} aria-label="Тёмный неоновый режим" title="Тёмный неоновый режим">
-        ✦
-      </button>
-      {authenticated ? (
+  const renderMenu = () => {
+    // Неавторизованный
+    if (!authenticated || !role) {
+      return (
         <>
-          <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>Профиль</Link>
-          <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>Создать</Link>
-          <LogoutButton />
+          <Link className="neon-button-outline" href="/dashboard" onClick={() => setOpen(false)}>📊 Дашборд</Link>
+          <LanguageThemeControls />
+          <button className="neon-button-outline theme-toggle" type="button" onClick={toggleTheme} aria-label="Тёмный неоновый режим" title="Тёмный неоновый режим">✦</button>
+          <Link className="neon-button-outline" href="/login" onClick={() => setOpen(false)}>🔑 Войти</Link>
+          <Link className="neon-button" href="/signup" onClick={() => setOpen(false)}>📝 Зарегистрироваться</Link>
         </>
-      ) : (
-        <>
-          <Link className="neon-button-outline" href="/login" onClick={() => setOpen(false)}>Вход</Link>
-          <Link className="neon-button" href="/signup" onClick={() => setOpen(false)}>Регистрация</Link>
-        </>
-      )}
-    </>
-  );
+      );
+    }
+
+    // Общие пункты для всех авторизованных
+    const commonItems = (
+      <>
+        <Link className="neon-button-outline" href="/dashboard" onClick={() => setOpen(false)}>📊 Дашборд</Link>
+        <Link className="neon-button-outline" href="/leaderboard" onClick={() => setOpen(false)}>🏆 Рейтинг</Link>
+        <Link className="neon-button-outline" href="/voting" onClick={() => setOpen(false)}>🗳️ Голосование</Link>
+        <Link className="neon-button-outline" href="/live" onClick={() => setOpen(false)}>📡 Прямой эфир</Link>
+      </>
+    );
+
+    // Пункты в зависимости от роли
+    const roleItems = () => {
+      switch (role) {
+        case 'viewer':
+          return (
+            <>
+              <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать задание</Link>
+              <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
+            </>
+          );
+        case 'player':
+          return (
+            <>
+              <Link className="neon-button-outline" href="/my-tasks" onClick={() => setOpen(false)}>📋 Мои задания</Link>
+              <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
+            </>
+          );
+        case 'admin':
+          return (
+            <>
+              <Link className="neon-button-outline" href="/admin" onClick={() => setOpen(false)}>⚙️ Админ-панель</Link>
+              <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать задание</Link>
+            </>
+          );
+        default:
+          return (
+            <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
+          );
+      }
+    };
+
+    return (
+      <>
+        {commonItems}
+        <LanguageThemeControls />
+        <button className="neon-button-outline theme-toggle" type="button" onClick={toggleTheme} aria-label="Тёмный неоновый режим" title="Тёмный неоновый режим">✦</button>
+        {roleItems()}
+        <LogoutButton />
+      </>
+    );
+  };
 
   if (simplified) {
     return (

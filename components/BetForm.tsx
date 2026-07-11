@@ -1,4 +1,37 @@
 'use client';
+
 import { useRouter } from 'next/navigation';
 import { FormEvent } from 'react';
-export default function BetForm({ taskId }: { taskId: number }) { const router = useRouter(); async function submit(e: FormEvent<HTMLFormElement>) { e.preventDefault(); const data = Object.fromEntries(new FormData(e.currentTarget).entries()); const r = await fetch(`/api/tasks/${taskId}/bet`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); alert(r.ok ? 'Ставка принята' : 'Ошибка ставки'); router.refresh(); } return <form className="form" onSubmit={submit}><input name="amount" type="number" min="1" placeholder="Сумма ставки" required /><select name="chosenOutcome"><option value="approve">Зачёт</option><option value="reject">Не зачёт</option></select><button className="neon-button">Сделать ставку</button></form>; }
+
+export default function BetForm({ taskId }: { taskId: number }) {
+  const router = useRouter();
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.currentTarget).entries());
+    const r = await fetch(`/api/tasks/${taskId}/bet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    alert(r.ok ? 'Ставка принята' : 'Ошибка ставки');
+    router.refresh();
+  }
+
+  return (
+    <form className="form" onSubmit={submit}>
+      <input
+        name="amount"
+        type="number"
+        min="1"
+        placeholder="Сумма ставки"
+        required
+      />
+      <select name="chosenOutcome">
+        <option value="approve">Зачёт</option>
+        <option value="reject">Не зачёт</option>
+      </select>
+      <button className="neon-button">Сделать ставку</button>
+    </form>
+  );
+}
