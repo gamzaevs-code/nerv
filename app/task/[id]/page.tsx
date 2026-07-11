@@ -2,8 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import BetForm from '@/components/BetForm';
 import ReportButton from '@/components/ReportButton';
-import TakeTaskButton from '@/components/TakeTaskButton';
-import MuxPlayerWrapper from '@/components/MuxPlayer';
+import UploadVideoForm from '@/components/UploadVideoForm';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -24,7 +23,10 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   });
   if (!task) notFound();
 
-  const playbackId = task.videoUrl?.split('/').pop() || '';
+  const canTake = user.role === 'player' && task.status === 'open' && task.playerId === null;
+  const isPlayer = user.role === 'player' && task.playerId === user.id;
+  const isTaken = task.status === 'taken';
+  const isCreator = user.id === task.creatorId;
 
   return (
     <>
@@ -39,23 +41,41 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
           </p>
           <div className="balance">{task.reward} ₽</div>
 
-          {/* Кнопка "Взять задание" — только для игроков, если статус open */}
-          {user.role === 'player' && task.status === 'open' && (
-            <TakeTaskButton taskId={task.id} />
+          {/* Видео (если есть) */}
+          {task.videoUrl && (
+            <video src={task.videoUrl} controls style={{ width: '100%', borderRadius: 16 }} />
+          )}
+          {!task.videoUrl && task.status === 'taken' && (
+            <p className="muted" style={{ textAlign: 'center', padding: 16 }}>
+              🎬 Видео пока не загружено
+            </p>
           )}
 
-          {/* Mux плеер */}
-          {playbackId ? (
-            <MuxPlayerWrapper
-              playbackId={playbackId}
-              title={task.title}
-              poster={task.thumbnailUrl || undefined}
-            />
-          ) : task.videoUrl ? (
-            <video src={task.videoUrl} controls style={{ width: '100%', borderRadius: 16 }} />
-          ) : (
-            <p className="muted" style={{ textAlign: 'center', padding: 24 }}>
-              🎬 Видео не загружено
+          {/* ✅ КНОПКА "ВЗЯТЬ ЗАДАНИЕ" — ТОЛЬКО ДЛЯ ИГРОКОВ, ЕСЛИ ЗАДАНИЕ ОТКРЫТО */}
+          {canTake && (
+            <form action={`/api/tasks/${task.id}/take`} method="POST">
+              <button className="neon-button" type="submit" style={{ width: '100%' }}>
+                🎯 Взять задание
+              </button>
+            </form>
+          )}
+
+          {/* ✅ ЗАГРУЗКА ВИДЕО — ЕСЛИ ИГРОК ВЗЯЛ ЗАДАНИЕ */}
+          {isPlayer && isTaken && (
+            <UploadVideoForm taskId={task.id} />
+          )}
+
+          {/* Если задание уже взято другим игроком */}
+          {task.playerId && task.playerId !== user.id && (
+            <p className="muted" style={{ textAlign: 'center' }}>
+              ⚡ Это задание уже выполняет {task.player?.name}
+            </p>
+          )}
+
+          {/* Если пользователь — игрок, но задание уже взято им */}
+          {user.role === 'player' && task.playerId === user.id && task.status === 'taken' && (
+            <p className="muted" style={{ textAlign: 'center', color: '#22C55E' }}>
+              ✅ Вы взяли это задание. Загрузите видео, чтобы завершить.
             </p>
           )}
 
@@ -63,15 +83,18 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
         </section>
 
         <section className="two-grid">
+          {/* ✅ СТАВКИ — ТОЛЬКО ДЛЯ ЗРИТЕЛЕЙ */}
           <article className="glass-card stack">
             <h2>Ставка</h2>
-            {/* Форма ставок — только для зрителей */}
-            {user.role === 'viewer' ? (
+            {user.role === 'viewer' || user.role === 'admin' ? (
               <BetForm taskId={task.id} />
             ) : (
-              <p className="muted">Только зрители могут делать ставки</p>
+              <p className="muted" style={{ textAlign: 'center' }}>
+                🎯 Только зрители могут делать ставки
+              </p>
             )}
           </article>
+
           <article className="glass-card stack">
             <h2>Ставки</h2>
             {task.bets.length === 0 && <p className="muted">Нет ставок</p>}
