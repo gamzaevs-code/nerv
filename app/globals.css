@@ -575,26 +575,6 @@ p {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 720px) {
-  .nav { align-items: flex-start; flex-direction: column; }
-  .nav-links { width: 100%; }
-  .nav .neon-button,
-  .nav .neon-button-outline { min-height: 38px; padding: 9px 12px; font-size: 13px; }
-  .grid { grid-template-columns: 1fr; }
-  .glass-card,
-  .feature-card,
-  .stat-card,
-  .leaderboard-card,
-  .auth-panel,
-  .auth-visual { border-radius: 20px; padding: 18px; }
-  .hero { padding-top: 28px; }
-  .profile-head { grid-template-columns: 1fr; }
-  .neon-button,
-  .neon-button-outline { width: 100%; text-align: center; }
-  h1, .page-title { font-size: clamp(38px, 13vw, 64px); }
-  .mobile-bottom-nav { display: flex; }
-}
-
 .nerv-logo {
   display: inline-flex;
   align-items: center;
@@ -629,7 +609,6 @@ p {
   .nerv-logo-img { width: 40px; height: 40px; }
   .nerv-logo-word { font-size: 25px; }
 }
-
 
 .nav-create-link {
   background: linear-gradient(135deg, #00E5FF 0%, #1D9BF0 100%);
@@ -927,4 +906,88 @@ body::before {
     radial-gradient(circle at 50% 30%, rgba(0,229,255,.24), transparent 34%) padding-box,
     linear-gradient(145deg, rgba(0,229,255,.95), rgba(29,155,240,.18)) border-box;
   overflow: hidden;
+}
+
+/* ✅ Бургер-меню */
+.burger-button {
+  display: none;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.34);
+  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  place-items: center;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.burger-button:hover {
+  border-color: rgba(0, 229, 255, 0.72);
+  background: rgba(0, 229, 255, 0.16);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.24);
+}
+
+.mobile-menu {
+  position: fixed;
+  left: 50%;
+  top: 80px;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: min(520px, calc(100% - 24px));
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.mobile-menu .nav-links {
+  flex-direction: column;
+  width: 100%;
+}
+
+.desktop-nav {
+  display: flex;
+}
+
+@media (max-width: 720px) {
+  .burger-button {
+    display: grid;
+  }
+
+  .desktop-nav {
+    display: none;
+  }
+
+  .neon-button,
+  .neon-button-outline {
+    min-height: 48px;
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .glass-card,
+  .feature-card,
+  .stat-card,
+  .leaderboard-card,
+  .auth-panel,
+  .auth-visual {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .page-shell {
+    padding: 24px 0 120px;
+  }
+
+  .nav-links {
+    gap: 10px;
+  }
 }
