@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { notifyUser } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 
@@ -12,33 +11,33 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Токен не указан.' }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { verificationToken: token },
-    select: { id: true, email: true, verificationTokenExpires: true, emailVerified: true },
+  const resetToken = await prisma.passwordResetToken.findUnique({
+    where: { token },
+    include: { user: true },
   });
 
-  if (!user) {
-    return NextResponse.json({ error: 'Неверный токен подтверждения.' }, { status: 400 });
+  if (!resetToken) {
+    return NextResponse.json({ error: 'Неверный или истёкший токен.' }, { status: 400 });
   }
 
-  if (user.emailVerified) {
-    return NextResponse.json({ ok: true, message: 'Email уже подтверждён.' });
+  if (resetToken.used) {
+    return NextResponse.json({ error: 'Токен уже использован.' }, { status: 400 });
   }
 
-  if (user.verificationTokenExpires && user.verificationTokenExpires < new Date()) {
-    return NextResponse.json({ error: 'Токен истёк. Запросите повторную отправку.' }, { status: 400 });
+  if (resetToken.expiresAt < new Date()) {
+    return NextResponse.json({ error: 'Токен истёк.' }, { status: 400 });
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      emailVerified: new Date(),
-      verificationToken: null,
-      verificationTokenExpires: null,
-    },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { emailVerified: new Date() },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true },
+    }),
+  ]);
 
-  await notifyUser(user.id, 'welcome', 'Добро пожаловать в НЕРВ! Ваш email подтверждён. Теперь вы можете создавать задания.', '/');
-
-  return NextResponse.json({ ok: true, message: 'Email успешно подтверждён!' });
+  return NextResponse.json({ message: 'Email успешно подтверждён!' });
 }
