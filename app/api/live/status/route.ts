@@ -1,20 +1,44 @@
 import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const id = Number(searchParams.get('id') || 0);
-  const userId = Number(searchParams.get('userId') || 0);
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-  const where = id > 0 ? { id } : userId > 0 ? { userId, isActive: true } : { isActive: true };
-  const streams = await prisma.liveStream.findMany({
-    where,
-    include: { user: { select: { id: true, name: true, level: true, reputation: true, avatar: true } } },
-    orderBy: { startedAt: 'desc' },
-    take: id > 0 || userId > 0 ? 1 : 50,
-  });
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
 
-  return NextResponse.json({ streams, stream: streams[0] || null });
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID стрима обязателен' },
+        { status: 400 }
+      );
+    }
+
+    const stream = await prisma.liveStream.findUnique({
+      where: { id },
+      include: { user: { select: { name: true } } },
+    });
+
+    if (!stream) {
+      return NextResponse.json(
+        { error: 'Стрим не найден' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ stream });
+  } catch (error) {
+    console.error('Live status error:', error);
+    return NextResponse.json(
+      { error: 'Не удалось получить статус стрима' },
+      { status: 500 }
+    );
+  }
 }
