@@ -47,9 +47,7 @@ export default async function LivePage() {
                 key={stream.id}
                 href={`/live/${stream.id}`}
                 className="glass-card"
-                style={{ textDecoration: 'none', transition: 'transform 0.2s ease', display: 'block' }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                style={{ textDecoration: 'none', display: 'block' }}
               >
                 <div style={{ position: 'relative' }}>
                   <div
