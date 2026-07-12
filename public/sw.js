@@ -1,4 +1,4 @@
-const CACHE = 'nerv-pwa-v3';
+const CACHE = 'nerv-pwa-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
