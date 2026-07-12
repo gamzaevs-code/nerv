@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { xpForNextLevel } from '@/lib/gamification';
 import ReportButton from '@/components/ReportButton';
-import PresenceSettings from '@/components/PresenceSettings';
-import SoundSettings from '@/components/SoundSettings';
 import OfferedTaskActions from '@/components/OfferedTaskActions';
 import { redirect } from 'next/navigation';
 import Header from '@/components/Header';
@@ -59,28 +57,6 @@ export default async function ProfilePage() {
             <Link className="neon-button-outline" href="/profile/edit">Редактировать</Link>
           </div>
 
-          {/* ✅ ФОРМА ЗАГРУЗКИ АВАТАРА */}
-          <form
-            action="/api/profile/avatar"
-            method="POST"
-            encType="multipart/form-data"
-            className="form"
-            style={{ marginTop: 8 }}
-          >
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input
-                type="file"
-                name="avatar"
-                accept="image/*"
-                required
-                style={{ flex: 1, minHeight: 44 }}
-              />
-              <button className="neon-button" type="submit" style={{ minHeight: 44 }}>
-                📷 Сменить аватар
-              </button>
-            </div>
-          </form>
-
           <div className="stack">
             <p className="neon-title">Уровень {fullUser.level} · опыт {fullUser.experience}/{nextXp}</p>
             <div className="xp-track">
@@ -94,21 +70,12 @@ export default async function ProfilePage() {
           </div>
 
           <div className="nav-links">
-            <Link className="neon-button-outline" href="/achievements">
-              🏅 Достижения
-            </Link>
-            <Link className="neon-button-outline" href="/referrals">
-              🤝 Рефералы
-            </Link>
-            <Link className="neon-button-outline" href="/wallet">
-              💳 Кошелёк
-            </Link>
-            <Link className="neon-button-outline" href="/transactions">
-              📒 Операции
-            </Link>
-            <Link className="neon-button-outline" href="/profile/export">
-              Экспорт данных
-            </Link>
+            <Link className="neon-button-outline" href="/settings">⚙️ Настройки</Link>
+            <Link className="neon-button-outline" href="/achievements">🏅 Достижения</Link>
+            <Link className="neon-button-outline" href="/referrals">🤝 Рефералы</Link>
+            <Link className="neon-button-outline" href="/wallet">💳 Кошелёк</Link>
+            <Link className="neon-button-outline" href="/transactions">📒 Операции</Link>
+            <Link className="neon-button-outline" href="/profile/export">Экспорт данных</Link>
             <ReportButton targetType="user" targetId={fullUser.id} />
           </div>
         </section>
@@ -147,8 +114,6 @@ export default async function ProfilePage() {
         </section>
 
         <section className="two-grid" style={{ marginTop: 18 }}>
-          <PresenceSettings enabled={!!fullUser.presenceSubscription?.enabled} />
-          <SoundSettings />
           <article className="glass-card stack">
             <h2 className="neon-text">Предложения</h2>
             {fullUser.offeredTasksReceived.length === 0 ? (

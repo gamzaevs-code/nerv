@@ -1,36 +1,33 @@
-import { mkdir, writeFile } from 'fs/promises';
-import path from 'path';
 import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getAuthUserIdFromCookies } from '@/lib/auth';
+import fs from 'fs';
+import path from 'path';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  const userId = getAuthUserIdFromCookies();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const formData = await request.formData();
-  const file = formData.get('avatar');
-
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: 'Файл аватарки обязателен.' }, { status: 400 });
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-  await mkdir(uploadDir, { recursive: true });
+  const formData = await request.formData();
+  const file = formData.get('avatar') as File | null;
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const fileName = `${Date.now()}-${userId}-${safeName}`;
-  const filePath = path.join(uploadDir, fileName);
-  await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
+  if (!file) {
+    return NextResponse.json({ error: 'Файл не выбран' }, { status: 400 });
+  }
 
-  const avatar = `/uploads/avatars/${fileName}`;
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { avatar },
-    select: { id: true, avatar: true },
+  // ✅ Заглушка — сохраняем как base64
+  const buffer = await file.arrayBuffer();
+  const base64 = Buffer.from(buffer).toString('base64');
+  const avatarUrl = `data:${file.type};base64,${base64}`;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { avatar: avatarUrl },
   });
 
-  return NextResponse.json(user);
+  return NextResponse.json({ success: true, avatar: avatarUrl });
 }

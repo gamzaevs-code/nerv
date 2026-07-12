@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { FormEvent, useRef, useState } from 'react';
 
-export default function CreateTaskForm() {
+export default function CreateTaskForm({ role }: { role: string }) {
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -11,7 +11,9 @@ export default function CreateTaskForm() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
 
-  // Запись видео
+  // ✅ Зритель (viewer) НЕ видит блок с видео
+  const isViewer = role === 'viewer' || role === 'viewer';
+
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -61,9 +63,8 @@ export default function CreateTaskForm() {
       setIsRecording(true);
     } catch (err) {
       console.error('Error starting recording:', err);
-      // ✅ ЗАГЛУШКА: если камера не доступна
       setError('Камера не доступна. Используйте загрузку файла.');
-      // ✅ Создаём демо-видео
+      // ✅ Создаём демо-видео (заглушка)
       const dummyVideo = new File(['dummy'], 'demo-video.mp4', { type: 'video/mp4' });
       setVideoFile(dummyVideo);
       setVideoPreview('/uploads/dummy.mp4');
@@ -89,10 +90,9 @@ export default function CreateTaskForm() {
     const reward = Number(formData.get('reward'));
 
     try {
-      // ✅ Если видео не загружено — используем заглушку
       let videoUrl = null;
       if (videoFile) {
-        // Имитация загрузки видео
+        // ✅ Имитация загрузки видео
         await new Promise((resolve) => setTimeout(resolve, 500));
         videoUrl = '/uploads/demo-video.mp4';
       }
@@ -154,28 +154,31 @@ export default function CreateTaskForm() {
         <input name="reward" type="number" min="1" defaultValue="100" required className="neon-input" />
       </label>
 
-      <label style={{ marginTop: 8 }}>
-        <span style={{ display: 'block', marginBottom: 8 }}>📹 Видео (опционально)</span>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className={isRecording ? 'neon-button' : 'neon-button-outline'}
-            onClick={isRecording ? stopRecording : startRecording}
-            style={{ flex: 1 }}
-          >
-            {isRecording ? '⏹️ Остановить запись' : '🎥 Записать с камеры'}
-          </button>
-          <label className="neon-button-outline" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
-            📁 Загрузить файл
-            <input
-              type="file"
-              accept="video/*"
-              onChange={handleVideoChange}
-              style={{ display: 'none' }}
-            />
-          </label>
-        </div>
-      </label>
+      {/* ✅ БЛОК С ВИДЕО — ТОЛЬКО ДЛЯ ИГРОКОВ И АДМИНОВ (НЕ ЗРИТЕЛЕЙ) */}
+      {!isViewer && (
+        <label style={{ marginTop: 8 }}>
+          <span style={{ display: 'block', marginBottom: 8 }}>📹 Видео (опционально)</span>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={isRecording ? 'neon-button' : 'neon-button-outline'}
+              onClick={isRecording ? stopRecording : startRecording}
+              style={{ flex: 1 }}
+            >
+              {isRecording ? '⏹️ Остановить запись' : '🎥 Записать с камеры'}
+            </button>
+            <label className="neon-button-outline" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+              📁 Загрузить файл
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleVideoChange}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </div>
+        </label>
+      )}
 
       {isRecording && (
         <div style={{ marginTop: 8, padding: 12, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid #EF4444' }}>

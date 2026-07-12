@@ -13,7 +13,7 @@ export default function VerifyEmailClient() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setMessage('Токен не указан. Проверьте ссылку в письме.');
+      setMessage('Токен не указан.');
       return;
     }
 
@@ -22,33 +22,24 @@ export default function VerifyEmailClient() {
         const data = await res.json();
         if (res.ok) {
           setStatus('success');
-          setMessage(data.message || 'Email успешно подтверждён!');
+          setMessage(data.message || 'Email подтверждён!');
         } else {
           setStatus('error');
-          setMessage(data.error || 'Не удалось подтвердить email.');
+          setMessage(data.error || 'Ошибка подтверждения.');
         }
       })
       .catch(() => {
         setStatus('error');
-        setMessage('Ошибка сети. Попробуйте позже.');
+        setMessage('Ошибка сети.');
       });
   }, [token]);
 
   return (
-    <div className="stack" style={{ textAlign: 'center', padding: '40px 20px' }}>
-      <div className="badge" style={{ margin: '0 auto' }}>
-        {status === 'loading' ? '⏳' : status === 'success' ? '✅' : '❌'}
-      </div>
-      <h1>
-        {status === 'loading' ? 'Подтверждение...' : status === 'success' ? 'Email подтверждён!' : 'Ошибка'}
-      </h1>
+    <div style={{ textAlign: 'center' }}>
+      <div className="badge">{status === 'loading' ? '⏳' : status === 'success' ? '✅' : '❌'}</div>
+      <h1>{status === 'loading' ? 'Подтверждение...' : status === 'success' ? 'Email подтверждён!' : 'Ошибка'}</h1>
       <p>{message}</p>
-      {status === 'success' && (
-        <Link className="neon-button" href="/dashboard">🚀 Войти в систему</Link>
-      )}
-      {status === 'error' && (
-        <Link className="neon-button-outline" href="/login">🔑 На страницу входа</Link>
-      )}
+      {status === 'success' && <Link className="neon-button" href="/dashboard">Войти</Link>}
     </div>
   );
 }

@@ -51,6 +51,7 @@ export default function HeaderClient({
           return (
             <>
               <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать задание</Link>
+              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
               <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
             </>
           );
@@ -58,6 +59,7 @@ export default function HeaderClient({
           return (
             <>
               <Link className="neon-button" href="/my-tasks" onClick={() => setOpen(false)}>📋 Мои задания</Link>
+              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
               <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
             </>
           );
@@ -66,11 +68,15 @@ export default function HeaderClient({
             <>
               <Link className="neon-button-outline" href="/admin" onClick={() => setOpen(false)}>⚙️ Админ-панель</Link>
               <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать задание</Link>
+              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
             </>
           );
         default:
           return (
-            <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
+            <>
+              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
+              <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
+            </>
           );
       }
     };
