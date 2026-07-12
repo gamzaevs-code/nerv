@@ -22,7 +22,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ ПРОВЕРКА EMAIL — ВОЗВРАЩАЕМ
+    // ✅ ПРОВЕРКА РОЛИ: ТОЛЬКО ЗРИТЕЛИ И АДМИНЫ МОГУТ СОЗДАВАТЬ ЗАДАНИЯ
+    if (user.role !== 'viewer' && user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Только зрители и администраторы могут создавать задания.' },
+        { status: 403 }
+      );
+    }
+
+    // ✅ ПРОВЕРКА EMAIL
     const currentUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: { emailVerified: true },
