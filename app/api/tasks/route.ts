@@ -22,29 +22,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // ❌ ВРЕМЕННО ОТКЛЮЧАЕМ ПРОВЕРКУ EMAIL
-    // const currentUser = await prisma.user.findUnique({
-    //   where: { id: user.id },
-    //   select: { emailVerified: true },
-    // });
-    // if (!currentUser?.emailVerified) {
-    //   return NextResponse.json(
-    //     { error: 'Подтвердите email, чтобы создавать задания.' },
-    //     { status: 403 }
-    //   );
-    // }
+    // ✅ ПРОВЕРКА EMAIL — ВОЗВРАЩАЕМ
+    const currentUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { emailVerified: true },
+    });
+    if (!currentUser?.emailVerified) {
+      return NextResponse.json(
+        { error: 'Подтвердите email, чтобы создавать задания.' },
+        { status: 403 }
+      );
+    }
 
-    // ❌ ВРЕМЕННО ОТКЛЮЧАЕМ ПРОВЕРКУ БАЛАНСА
-    // const creator = await prisma.user.findUnique({
-    //   where: { id: user.id },
-    //   select: { balance: true },
-    // });
-    // if (!creator || creator.balance < reward) {
-    //   return NextResponse.json(
-    //     { error: 'Недостаточно средств для создания задания.' },
-    //     { status: 400 }
-    //   );
-    // }
+    // ✅ ПРОВЕРКА БАЛАНСА
+    const creator = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { balance: true },
+    });
+    if (!creator || creator.balance < reward) {
+      return NextResponse.json(
+        { error: 'Недостаточно средств для создания задания.' },
+        { status: 400 }
+      );
+    }
 
     const task = await prisma.task.create({
       data: {
