@@ -26,15 +26,14 @@ export default function HeaderClient({
     if (!authenticated || !role) {
       return (
         <>
-          <Link className="neon-button-outline" href="/dashboard" onClick={() => setOpen(false)}>📊 Дашборд</Link>
-          <LanguageThemeControls />
           <Link className="neon-button-outline" href="/login" onClick={() => setOpen(false)}>🔑 Войти</Link>
           <Link className="neon-button" href="/signup" onClick={() => setOpen(false)}>📝 Зарегистрироваться</Link>
+          <LanguageThemeControls />
         </>
       );
     }
 
-    // Общие пункты для всех авторизованных
+    // Авторизованные — общие пункты
     const commonItems = (
       <>
         <Link className="neon-button-outline" href="/dashboard" onClick={() => setOpen(false)}>📊 Дашборд</Link>
@@ -50,8 +49,7 @@ export default function HeaderClient({
         case 'viewer':
           return (
             <>
-              <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать задание</Link>
-              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
+              <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать</Link>
               <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
             </>
           );
@@ -59,24 +57,20 @@ export default function HeaderClient({
           return (
             <>
               <Link className="neon-button" href="/my-tasks" onClick={() => setOpen(false)}>📋 Мои задания</Link>
-              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
               <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
             </>
           );
         case 'admin':
           return (
             <>
-              <Link className="neon-button-outline" href="/admin" onClick={() => setOpen(false)}>⚙️ Админ-панель</Link>
-              <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать задание</Link>
-              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
+              <Link className="neon-button-outline" href="/admin" onClick={() => setOpen(false)}>⚙️ Админ</Link>
+              <Link className="neon-button nav-create-link" href="/create" onClick={() => setOpen(false)}>➕ Создать</Link>
+              <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
             </>
           );
         default:
           return (
-            <>
-              <Link className="neon-button-outline" href="/settings" onClick={() => setOpen(false)}>⚙️ Настройки</Link>
-              <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
-            </>
+            <Link className="neon-button-outline" href="/profile" onClick={() => setOpen(false)}>👤 Профиль</Link>
           );
       }
     };
