@@ -40,7 +40,7 @@ export default async function LiveStreamPage({ params }: { params: { id: string 
             Ведущий: {stream.user.name} · 👁️ Зрителей: {stream.viewers || 0}
           </p>
 
-          {/* ✅ Заглушка для стрима */}
+          {/* ✅ ЗАГЛУШКА ДЛЯ СТРИМА */}
           <div
             style={{
               width: '100%',
@@ -60,21 +60,6 @@ export default async function LiveStreamPage({ params }: { params: { id: string 
             <p className="muted" style={{ textAlign: 'center', maxWidth: 400 }}>
               Прямой эфир будет доступен позже. Следите за обновлениями!
             </p>
-            <div
-              style={{
-                marginTop: 16,
-                display: 'flex',
-                gap: 4,
-                fontSize: 12,
-                color: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <span>●</span>
-              <span>●</span>
-              <span>●</span>
-              <span>●</span>
-              <span>●</span>
-            </div>
           </div>
 
           {stream.description && <p style={{ marginTop: 8 }}>{stream.description}</p>}
