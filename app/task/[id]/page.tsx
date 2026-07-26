@@ -82,22 +82,22 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
           <ReportButton targetType="task" targetId={task.id} />
         </section>
 
-        <section className="two-grid">
-          {/* ✅ СТАВКИ — ТОЛЬКО ДЛЯ ЗРИТЕЛЕЙ */}
+                <section className="two-grid">
+          {/* ✅ ПРОГНОЗЫ — ТОЛЬКО ДЛЯ ЗРИТЕЛЕЙ */}
           <article className="glass-card stack">
-            <h2>Ставка</h2>
+            <h2>Прогноз</h2>
             {user.role === 'viewer' || user.role === 'admin' ? (
               <BetForm taskId={task.id} />
             ) : (
               <p className="muted" style={{ textAlign: 'center' }}>
-                🎯 Только зрители могут делать ставки
+                🎯 Только зрители могут делать прогнозы
               </p>
             )}
           </article>
 
           <article className="glass-card stack">
-            <h2>Ставки</h2>
-            {task.bets.length === 0 && <p className="muted">Нет ставок</p>}
+            <h2>Прогнозы</h2>
+            {task.bets.length === 0 && <p className="muted">Нет прогнозов</p>}
             {task.bets.map((bet) => (
               <p key={bet.id}>
                 {bet.user.name}: {bet.amount} ₽ на {bet.chosenOutcome}

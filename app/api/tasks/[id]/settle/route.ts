@@ -116,7 +116,7 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
       for (const bet of bets) {
         if (bet.chosenOutcome === outcome && winningPool > 0) {
-          // Выплата идёт из общего пула ставок пропорционально размеру выигравшей ставки.
+          // Выплата идёт из общего пула прогнозов пропорционально размеру выигравшего прогноза.
           // Так баланс системы не создаёт деньги из воздуха.
           const payout = Math.floor((totalBetPool * bet.amount) / winningPool);
           if (payout > 0) {
@@ -127,7 +127,7 @@ export async function POST(_request: Request, { params }: { params: { id: string
                 type: 'bet_win',
                 amount: payout,
                 status: 'completed',
-                reason: `Выигрыш ставки по заданию ${task.id}`,
+               reason: `Бонус за точный прогноз по заданию ${task.id}`,
               },
             });
           }

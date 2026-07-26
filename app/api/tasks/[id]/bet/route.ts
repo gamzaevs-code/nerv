@@ -9,10 +9,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { amount, chosenOutcome } = await request.json();
   const value = Number(amount);
-  if (!['approve', 'reject'].includes(chosenOutcome) || !Number.isInteger(value) || value <= 0 || value > user.balance) return NextResponse.json({ error: 'Некорректная ставка.' }, { status: 400 });
+  if (!['approve', 'reject'].includes(chosenOutcome) || !Number.isInteger(value) || value <= 0 || value > user.balance) return NextResponse.json({ error: 'Некорректный прогноз.' }, { status: 400 });
   const bet = await prisma.$transaction(async (tx) => {
     await tx.user.update({ where: { id: user.id }, data: { balance: { decrement: value } } });
-    await tx.transaction.create({ data: { userId: user.id, type: 'bet', amount: -value, status: 'completed', reason: `Ставка на задание ${params.id}` } });
+    await tx.transaction.create({ data: { userId: user.id, type: 'bet', amount: -value, status: 'completed', reason: `Прогноз на задание ${params.id}` } });
     return tx.bet.create({ data: { taskId: Number(params.id), userId: user.id, amount: value, chosenOutcome } });
   });
   return NextResponse.json(bet, { status: 201 });

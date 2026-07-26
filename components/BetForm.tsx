@@ -14,7 +14,7 @@ export default function BetForm({ taskId }: { taskId: number }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    alert(r.ok ? 'Ставка принята' : 'Ошибка ставки');
+    alert(r.ok ? 'Прогноз принят' : 'Ошибка прогноза');
     router.refresh();
   }
 
@@ -24,14 +24,14 @@ export default function BetForm({ taskId }: { taskId: number }) {
         name="amount"
         type="number"
         min="1"
-        placeholder="Сумма ставки"
+        placeholder="Сумма прогноза"
         required
       />
       <select name="chosenOutcome">
         <option value="approve">Зачёт</option>
         <option value="reject">Не зачёт</option>
       </select>
-      <button className="neon-button">Сделать ставку</button>
+      <button className="neon-button">Сделать прогноз</button>
     </form>
   );
 }
