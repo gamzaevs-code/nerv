@@ -57,10 +57,19 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="grid dashboard-stats">
-          <article className="stat-card neon-border"><p className="stat-label">Баланс</p><div className="balance stat-value">{user.balance} ₽</div></article>
-          <article className="stat-card neon-border"><p className="stat-label">Репутация</p><div className="metric stat-value">{fullUser?.reputation ?? 0}</div></article>
-          <article className="stat-card neon-border"><p className="stat-label">Роль</p><div className="metric stat-value">{user.role}</div></article>
+                <section className="grid dashboard-stats">
+          <Link href="/wallet" className="stat-card neon-border" style={{ textDecoration: 'none', cursor: 'pointer' }}>
+            <p className="stat-label">Баланс</p>
+            <div className="balance stat-value">{user.balance} ₽</div>
+          </Link>
+          <Link href="/leaderboard" className="stat-card neon-border" style={{ textDecoration: 'none', cursor: 'pointer' }}>
+            <p className="stat-label">Репутация</p>
+            <div className="metric stat-value">{fullUser?.reputation ?? 0}</div>
+          </Link>
+          <Link href="/profile" className="stat-card neon-border" style={{ textDecoration: 'none', cursor: 'pointer' }}>
+            <p className="stat-label">Роль</p>
+            <div className="metric stat-value">{user.role}</div>
+          </Link>
         </section>
 
         <div style={{ marginTop: 18 }}><QuickActions role={user.role} /></div>
