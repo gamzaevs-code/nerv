@@ -81,36 +81,36 @@ export default async function ProfilePage() {
         </section>
 
         <section className="grid">
-          <article className="stat-card">
+          <Link href="/wallet" className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <p className="stat-label">Баланс</p>
             <div className="balance">{fullUser.balance} ₽</div>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/my-tasks?type=created" className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <p className="stat-label">Создано заданий</p>
             <div className="metric">{fullUser._count.createdTasks}</div>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/my-tasks?type=taken" className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <p className="stat-label">Взято / выполнено</p>
             <div className="metric">{fullUser._count.playingTasks}</div>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/transactions" className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <p className="stat-label">Заработано</p>
             <div className="balance">{earned} ₽</div>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/voting" className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <p className="stat-label">Голосов</p>
             <div className="metric">{fullUser._count.votes}</div>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/leaderboard" className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <p className="stat-label">Репутация</p>
             <div className="metric">{fullUser.reputation}</div>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/my-tasks?type=history" className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <p className="stat-label">Успешно / провалено</p>
             <div className="metric">
               {fullUser.completedTasksCount} / {fullUser.failedTasksCount}
             </div>
-          </article>
+          </Link>
         </section>
 
         <section className="two-grid" style={{ marginTop: 18 }}>
