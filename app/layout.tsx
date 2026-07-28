@@ -4,6 +4,7 @@ import SupportWidget from '@/components/SupportWidget';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
 import PresenceTracker from '@/components/PresenceTracker';
+import SplashScreen from '@/components/SplashScreen';
 import { ThemeProvider } from '@/app/providers/ThemeProvider';
 import PageTransitionProvider from '@/app/providers/PageTransitionProvider';
 import { SoundProvider } from '@/app/providers/SoundProvider';
@@ -59,13 +60,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <SoundProvider>
-            <PwaRegister />
-            <PullToRefresh />
-            <PresenceTracker />
-            <PageTransitionProvider>{children}</PageTransitionProvider>
-            <footer className="site-footer">© 2026 НЕРВ | Powered by Next.js</footer>
-            <SupportWidget />
-            <MobileBottomNav />
+            {/* ✅ ЗАСТАВКА ПРИ ОТКРЫТИИ */}
+            <SplashScreen>
+              <PwaRegister />
+              <PullToRefresh />
+              <PresenceTracker />
+              <PageTransitionProvider>{children}</PageTransitionProvider>
+              <footer className="site-footer">© 2026 НЕРВ | Powered by Next.js</footer>
+              <SupportWidget />
+              <MobileBottomNav />
+            </SplashScreen>
           </SoundProvider>
         </ThemeProvider>
       </body>
