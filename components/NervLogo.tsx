@@ -2,11 +2,11 @@
 
 import { motion } from 'framer-motion';
 
-export default function NervLogo({ compact = false }: { compact?: boolean }) {
+export default function HepbLogo({ compact = false }: { compact?: boolean }) {
   return (
     <motion.span
       className="nerv-logo"
-      aria-label="Нерв"
+      aria-label="HEPB"
       whileHover={{ scale: 1.04 }}
       whileTap={{ scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 320, damping: 18 }}
@@ -23,9 +23,9 @@ export default function NervLogo({ compact = false }: { compact?: boolean }) {
         }}
         transition={{ duration: 2.4, repeat: Infinity }}
       >
-        <span className="nerv-logo-letter">Н</span>
+        <span className="nerv-logo-letter">H</span>
       </motion.span>
-      {!compact && <span className="nerv-logo-word">Нерв</span>}
+      {!compact && <span className="nerv-logo-word">HEPB</span>}
     </motion.span>
   );
 }

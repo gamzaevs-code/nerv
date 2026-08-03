@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
-// Динамический импорт MuxPlayer (только на клиенте)
 const MuxPlayer = dynamic(
   () => import('@mux/mux-player-react'),
   { ssr: false }
@@ -74,7 +73,7 @@ export default function MuxPlayerWrapper({
       autoPlay={autoPlay}
       loop={loop}
       muted={muted}
-      primaryColor="#8B5CF6"
+      primaryColor="#00E5FF"
       accentColor="#6D28D9"
     />
   );

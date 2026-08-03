@@ -16,6 +16,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Создаём загрузку в Mux
     const upload = await mux.video.uploads.create({
       newAssetSettings: {
         playback_policy: 'public',

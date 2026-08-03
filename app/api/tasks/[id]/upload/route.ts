@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import Mux from '@mux/mux-node';
 
 export const runtime = 'nodejs';
+
+const mux = new Mux({
+  tokenId: process.env.MUX_TOKEN_ID!,
+  tokenSecret: process.env.MUX_TOKEN_SECRET!,
+});
 
 export async function POST(
   request: Request,
@@ -15,8 +21,11 @@ export async function POST(
     }
 
     const taskId = Number(params.id);
-    if (!taskId) {
-      return NextResponse.json({ error: 'Invalid task id' }, { status: 400 });
+    const body = await request.json();
+    const { uploadId } = body;
+
+    if (!uploadId) {
+      return NextResponse.json({ error: 'Upload ID is required' }, { status: 400 });
     }
 
     // Проверяем, что задание существует и пользователь — игрок
@@ -43,22 +52,30 @@ export async function POST(
       );
     }
 
-    // 🔥 ЗАГЛУШКА — просто сохраняем "видео загружено"
-    // В реальном проекте здесь должна быть загрузка в S3 / Mux / Cloudflare
+    // Получаем информацию о загруженном файле из Mux
+    const upload = await mux.video.uploads.get(uploadId);
+    const assetId = upload.asset_id;
 
-    // Обновляем задание — ставим статус "voting" (на голосование)
+    if (!assetId) {
+      return NextResponse.json(
+        { error: 'Asset not ready yet' },
+        { status: 400 }
+      );
+    }
+
+    // Обновляем задание — ставим статус "voting" и сохраняем assetId
     await prisma.task.update({
       where: { id: taskId },
       data: {
         status: 'voting',
-        videoUrl: '/uploads/dummy-video.mp4', // Заглушка
+        streamAssetId: assetId, // сохраняем ID для плеера
       },
     });
 
     return NextResponse.json({
       success: true,
       message: 'Видео загружено. Задание отправлено на голосование.',
-      videoUrl: '/uploads/dummy-video.mp4',
+      assetId,
     });
   } catch (error) {
     console.error('Upload error:', error);

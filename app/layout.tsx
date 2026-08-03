@@ -13,15 +13,15 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: {
-    default: 'НЕРВ',
-    template: '%s | НЕРВ',
+    default: 'HEPB',
+    template: '%s | HEPB',
   },
-  description: 'НЕРВ — технологичная игровая платформа заданий, голосований и наград.',
-  applicationName: 'НЕРВ',
+  description: 'HEPB (High Energy Player Base) — игровая платформа заданий, голосований и наград.',
+  applicationName: 'HEPB',
   manifest: '/manifest.json',
-  appleWebApp: {
+    appleWebApp: {
     capable: true,
-    title: 'НЕРВ',
+    title: 'HEPB',
     statusBarStyle: 'black-translucent',
   },
   formatDetection: {
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
   other: {
     'mobile-web-app-capable': 'yes',
   },
-  openGraph: {
-    title: 'НЕРВ',
-    description: 'Игровые задания, видео-доказательства, голосования и награды в едином контуре.',
+   openGraph: {
+    title: 'HEPB',
+    description: 'HEPB (High Energy Player Base) — игровые задания, видео-доказательства, голосования и награды в едином контуре.',
     type: 'website',
     images: ['/icon-512x512.png'],
   },
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <PullToRefresh />
               <PresenceTracker />
               <PageTransitionProvider>{children}</PageTransitionProvider>
-              <footer className="site-footer">© 2026 НЕРВ | Powered by Next.js</footer>
+             <footer className="site-footer">© 2026 HEPB | Powered by Next.js</footer>
               <SupportWidget />
               <MobileBottomNav />
             </SplashScreen>

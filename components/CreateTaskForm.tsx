@@ -10,9 +10,9 @@ export default function CreateTaskForm({ role }: { role: string }) {
   const [loading, setLoading] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  // ✅ Зритель (viewer) НЕ видит блок с видео
-  const isViewer = role === 'viewer' || role === 'viewer';
+  const isViewer = role === 'viewer';
 
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -22,27 +22,18 @@ export default function CreateTaskForm({ role }: { role: string }) {
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true,
       });
-
       streamRef.current = stream;
-
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp9,opus',
       });
-
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
+        if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
@@ -50,12 +41,10 @@ export default function CreateTaskForm({ role }: { role: string }) {
         const file = new File([blob], `recording-${Date.now()}.webm`, { type: 'video/webm' });
         setVideoFile(file);
         setVideoPreview(URL.createObjectURL(file));
-
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
         }
-
         setIsRecording(false);
       };
 
@@ -64,7 +53,6 @@ export default function CreateTaskForm({ role }: { role: string }) {
     } catch (err) {
       console.error('Error starting recording:', err);
       setError('Камера не доступна. Используйте загрузку файла.');
-      // ✅ Создаём демо-видео (заглушка)
       const dummyVideo = new File(['dummy'], 'demo-video.mp4', { type: 'video/mp4' });
       setVideoFile(dummyVideo);
       setVideoPreview('/uploads/dummy.mp4');
@@ -78,11 +66,46 @@ export default function CreateTaskForm({ role }: { role: string }) {
     }
   }
 
+  async function uploadToMux(file: File): Promise<string> {
+    // 1. Получаем URL для загрузки
+    const uploadRes = await fetch('/api/video/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+
+    const { url: uploadUrl, uploadId } = await uploadRes.json();
+
+    // 2. Загружаем файл
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl, true);
+
+    await new Promise((resolve, reject) => {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status === 200) resolve(null);
+        else reject(new Error(`Upload failed with status ${xhr.status}`));
+      };
+      xhr.onerror = () => reject(new Error('Upload failed'));
+      xhr.send(file);
+    });
+
+    return uploadId;
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
     setMessage('');
+    setUploadProgress(0);
 
     const formData = new FormData(event.currentTarget);
     const title = formData.get('title') as string;
@@ -90,11 +113,11 @@ export default function CreateTaskForm({ role }: { role: string }) {
     const reward = Number(formData.get('reward'));
 
     try {
-      let videoUrl = null;
-      if (videoFile) {
-        // ✅ Имитация загрузки видео
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        videoUrl = '/uploads/demo-video.mp4';
+      let uploadId = null;
+
+      if (videoFile && videoFile.size > 0) {
+        // Загружаем реальное видео через Mux
+        uploadId = await uploadToMux(videoFile);
       }
 
       const createRes = await fetch('/api/tasks', {
@@ -104,7 +127,7 @@ export default function CreateTaskForm({ role }: { role: string }) {
           title,
           description,
           reward,
-          videoUrl,
+          uploadId, // передаём uploadId вместо videoUrl
         }),
       });
 
@@ -154,7 +177,6 @@ export default function CreateTaskForm({ role }: { role: string }) {
         <input name="reward" type="number" min="1" defaultValue="100" required className="neon-input" />
       </label>
 
-      {/* ✅ БЛОК С ВИДЕО — ТОЛЬКО ДЛЯ ИГРОКОВ И АДМИНОВ (НЕ ЗРИТЕЛЕЙ) */}
       {!isViewer && (
         <label style={{ marginTop: 8 }}>
           <span style={{ display: 'block', marginBottom: 8 }}>📹 Видео (опционально)</span>
@@ -178,6 +200,23 @@ export default function CreateTaskForm({ role }: { role: string }) {
             </label>
           </div>
         </label>
+      )}
+
+      {uploadProgress > 0 && uploadProgress < 100 && (
+        <div style={{ marginTop: 8 }}>
+          <p className="muted">Загрузка видео: {uploadProgress}%</p>
+          <div style={{ width: '100%', height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>
+            <div
+              style={{
+                width: `${uploadProgress}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #00E5FF, #6D28D9)',
+                borderRadius: 4,
+                transition: 'width 0.3s ease',
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {isRecording && (

@@ -3,10 +3,17 @@ import Header from '@/components/Header';
 import BetForm from '@/components/BetForm';
 import ReportButton from '@/components/ReportButton';
 import UploadVideoForm from '@/components/UploadVideoForm';
+import MuxPlayerWrapper from '@/components/MuxPlayer';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import Mux from '@mux/mux-node';
 
 export const dynamic = 'force-dynamic';
+
+const mux = new Mux({
+  tokenId: process.env.MUX_TOKEN_ID!,
+  tokenSecret: process.env.MUX_TOKEN_SECRET!,
+});
 
 export default async function TaskDetailPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
@@ -22,6 +29,17 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
     },
   });
   if (!task) notFound();
+
+  // Получаем playbackId из Mux по assetId
+  let playbackId = null;
+  if (task.streamAssetId) {
+    try {
+      const asset = await mux.video.assets.get(task.streamAssetId);
+      playbackId = asset.playback_ids?.[0]?.id || null;
+    } catch {
+      playbackId = null;
+    }
+  }
 
   const canTake = user.role === 'player' && task.status === 'open' && task.playerId === null;
   const isPlayer = user.role === 'player' && task.playerId === user.id;
@@ -41,17 +59,17 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
           </p>
           <div className="balance">{task.reward} ₽</div>
 
-          {/* Видео (если есть) */}
-          {task.videoUrl && (
+          {/* ✅ ПЛЕЕР MUX */}
+          {playbackId ? (
+            <MuxPlayerWrapper playbackId={playbackId} title={task.title} />
+          ) : task.videoUrl ? (
             <video src={task.videoUrl} controls style={{ width: '100%', borderRadius: 16 }} />
-          )}
-          {!task.videoUrl && task.status === 'taken' && (
+          ) : task.status === 'taken' ? (
             <p className="muted" style={{ textAlign: 'center', padding: 16 }}>
               🎬 Видео пока не загружено
             </p>
-          )}
+          ) : null}
 
-          {/* ✅ КНОПКА "ВЗЯТЬ ЗАДАНИЕ" — ТОЛЬКО ДЛЯ ИГРОКОВ, ЕСЛИ ЗАДАНИЕ ОТКРЫТО */}
           {canTake && (
             <form action={`/api/tasks/${task.id}/take`} method="POST">
               <button className="neon-button" type="submit" style={{ width: '100%' }}>
@@ -60,19 +78,16 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
             </form>
           )}
 
-          {/* ✅ ЗАГРУЗКА ВИДЕО — ЕСЛИ ИГРОК ВЗЯЛ ЗАДАНИЕ */}
           {isPlayer && isTaken && (
             <UploadVideoForm taskId={task.id} />
           )}
 
-          {/* Если задание уже взято другим игроком */}
           {task.playerId && task.playerId !== user.id && (
             <p className="muted" style={{ textAlign: 'center' }}>
               ⚡ Это задание уже выполняет {task.player?.name}
             </p>
           )}
 
-          {/* Если пользователь — игрок, но задание уже взято им */}
           {user.role === 'player' && task.playerId === user.id && task.status === 'taken' && (
             <p className="muted" style={{ textAlign: 'center', color: '#22C55E' }}>
               ✅ Вы взяли это задание. Загрузите видео, чтобы завершить.
@@ -82,8 +97,7 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
           <ReportButton targetType="task" targetId={task.id} />
         </section>
 
-                <section className="two-grid">
-          {/* ✅ ПРОГНОЗЫ — ТОЛЬКО ДЛЯ ЗРИТЕЛЕЙ */}
+        <section className="two-grid">
           <article className="glass-card stack">
             <h2>Прогноз</h2>
             {user.role === 'viewer' || user.role === 'admin' ? (
