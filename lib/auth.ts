@@ -20,6 +20,7 @@ type CurrentUser = {
   experience: number;
   theme: string;
   createdAt: Date;
+  emailVerified: Date | null; // ✅ ДОБАВЛЕНО
 };
 
 function getJwtSecret() {
@@ -124,6 +125,7 @@ export async function getCurrentUserServer(): Promise<CurrentUser | null> {
       experience: true,
       theme: true,
       createdAt: true,
+      emailVerified: true, // ✅ ДОБАВЛЕНО
     },
   });
 }

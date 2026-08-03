@@ -11,33 +11,31 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Токен не указан.' }, { status: 400 });
   }
 
-  const resetToken = await prisma.passwordResetToken.findUnique({
-    where: { token },
-    include: { user: true },
+  // Ищем пользователя по verificationToken (НЕ passwordResetToken!)
+  const user = await prisma.user.findFirst({
+    where: { verificationToken: token },
   });
 
-  if (!resetToken) {
+  if (!user) {
     return NextResponse.json({ error: 'Неверный или истёкший токен.' }, { status: 400 });
   }
 
-  if (resetToken.used) {
-    return NextResponse.json({ error: 'Токен уже использован.' }, { status: 400 });
+  if (user.emailVerified) {
+    return NextResponse.json({ message: 'Email уже подтверждён.' });
   }
 
-  if (resetToken.expiresAt < new Date()) {
-    return NextResponse.json({ error: 'Токен истёк.' }, { status: 400 });
+  if (!user.verificationTokenExpires || user.verificationTokenExpires < new Date()) {
+    return NextResponse.json({ error: 'Токен истёк. Запросите новое письмо.' }, { status: 400 });
   }
 
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: resetToken.userId },
-      data: { emailVerified: new Date() },
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: resetToken.id },
-      data: { used: true },
-    }),
-  ]);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerified: new Date(),
+      verificationToken: null,
+      verificationTokenExpires: null,
+    },
+  });
 
   return NextResponse.json({ message: 'Email успешно подтверждён!' });
 }

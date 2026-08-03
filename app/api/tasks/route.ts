@@ -30,17 +30,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ ПРОВЕРКА EMAIL
-    const currentUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { emailVerified: true },
-    });
-    if (!currentUser?.emailVerified) {
-      return NextResponse.json(
-        { error: 'Подтвердите email, чтобы создавать задания.' },
-        { status: 403 }
-      );
-    }
+    // ✅ УБИРАЕМ ПРОВЕРКУ EMAIL — ПРИ СОЗДАНИИ ЗАДАНИЯ EMAIL НЕ НУЖЕН
+    // const currentUser = await prisma.user.findUnique({
+    //   where: { id: user.id },
+    //   select: { emailVerified: true },
+    // });
+    // if (!currentUser?.emailVerified) {
+    //   return NextResponse.json(
+    //     { error: 'Подтвердите email, чтобы создавать задания.' },
+    //     { status: 403 }
+    //   );
+    // }
 
     // ✅ ПРОВЕРКА БАЛАНСА
     const creator = await prisma.user.findUnique({

@@ -67,6 +67,9 @@ export async function POST(request: Request) {
       where: { id: user.id },
     });
 
+    // ✅ Проверяем подтверждение email (мягкое уведомление, не блокирует)
+    const emailVerifiedFlag = !!refreshed?.emailVerified || !!user.emailVerified;
+
     const token = signAuthToken({ userId: user.id, email: user.email });
     const response = NextResponse.json({
       user: {
@@ -75,6 +78,7 @@ export async function POST(request: Request) {
         name: user.name,
         role: user.role,
         balance: refreshed?.balance ?? user.balance,
+        emailVerified: emailVerifiedFlag, // ✅ ДОБАВЛЕНО
       },
     });
 
