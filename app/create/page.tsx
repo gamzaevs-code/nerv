@@ -9,6 +9,27 @@ export default async function CreatePage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
+  // ✅ УБИРАЕМ ПРОВЕРКУ EMAIL В UI
+  // const currentUser = await prisma.user.findUnique({
+  //   where: { id: user.id },
+  //   select: { emailVerified: true },
+  // });
+  // if (!currentUser?.emailVerified) {
+  //   return (
+  //     <>
+  //       <Header />
+  //       <main className="page-shell">
+  //         <div className="glass-card stack" style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+  //           <span className="badge">⚠️ Email не подтверждён</span>
+  //           <h1>Подтвердите email</h1>
+  //           <p className="muted">Чтобы создавать задания, необходимо подтвердить ваш email.</p>
+  //           <Link href="/verify-email" className="neon-button">Подтвердить email</Link>
+  //         </div>
+  //       </main>
+  //     </>
+  //   );
+  // }
+
   return (
     <>
       <Header />
