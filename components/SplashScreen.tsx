@@ -42,11 +42,11 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
               flexDirection: 'column',
             }}
           >
-            {/* Видео */}
+            {/* Видео — muted=true для автовоспроизведения */}
             <video
               src="/splash.mp4"
               autoPlay
-              muted={false}
+              muted={true}
               playsInline
               style={{
                 width: '100%',
