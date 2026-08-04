@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function WalletPage() {
   const router = useRouter();
@@ -121,13 +122,24 @@ export default function WalletPage() {
   return (
     <main className="page-shell">
       <div className="glass-card stack" style={{ maxWidth: 480, margin: '0 auto' }}>
-        <span className="badge">💳 Кошелёк</span>
+        {/* ✅ КНОПКА НАЗАД */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <Link
+            href="/profile"
+            className="neon-button-outline"
+            style={{ padding: '6px 14px', fontSize: 14, minHeight: 36 }}
+          >
+            ← Назад
+          </Link>
+          <span className="badge">💳 Кошелёк</span>
+        </div>
+
         <h1 style={{ fontSize: 48, margin: '8px 0' }}>{balance} ₽</h1>
         <p className="muted">Текущий баланс</p>
 
         <hr style={{ borderColor: 'rgba(139,92,246,0.2)', margin: '16px 0' }} />
 
-        {/* ✅ ПОПОЛНЕНИЕ */}
+        {/* ПОПОЛНЕНИЕ */}
         <div className="stack" style={{ marginTop: 8 }}>
           <h3>💰 Пополнить баланс</h3>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
