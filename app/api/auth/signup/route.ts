@@ -8,6 +8,7 @@ import { applyReferralBonuses, ensureReferralCode } from '@/lib/referrals';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { sendEmail } from '@/lib/email';
 import { logAction } from '@/lib/logger';
+
 export const runtime = 'nodejs';
 
 type SignupBody = {
@@ -79,13 +80,24 @@ export async function POST(request: Request) {
       await prisma.inviteCode.update({ where: { code: body.inviteCode.trim() }, data: { usedCount: { increment: 1 } } });
     }
 
-    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin}/api/auth/verify?token=${verificationToken}`;
+    // ✅ ИСПРАВЛЕНО: ссылка на /verify-email
+    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin}/verify-email?token=${verificationToken}`;
+
     await Promise.all([
-      sendEmail({ to: user.email, subject: 'Подтвердите email НЕРВ', text: `Ссылка подтверждения: ${verifyUrl}`, html: `<p>Подтвердите email:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>` }),
+      sendEmail({
+        to: user.email,
+        subject: 'Подтвердите email НЕРВ',
+        text: `Ссылка подтверждения: ${verifyUrl}`,
+        html: `<p>Подтвердите email:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
+      }),
       logAction(user.id, 'signup', { email: user.email, role }, request),
     ]);
 
-    const refreshed = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true, email: true, name: true, role: true, balance: true } });
+    const refreshed = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, name: true, role: true, balance: true },
+    });
+
     const token = signAuthToken({ userId: user.id, email: user.email });
     const response = NextResponse.json({ user: refreshed || user }, { status: 201 });
     response.cookies.set(AUTH_COOKIE_NAME, token, cookieOptions);
@@ -93,7 +105,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
- if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json({ error: 'Пользователь с таким email уже существует.' }, { status: 409 });
     }
 
