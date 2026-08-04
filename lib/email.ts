@@ -86,7 +86,7 @@ export async function sendEmail(input: SendEmailInput) {
 
 export async function sendVerificationEmail(email: string, token: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const verifyUrl = `${appUrl}/verify-email?token=${token}`;
+  const verifyUrl = `${appUrl}/verify-email?token=${token}`; // ✅ ИСПРАВЛЕНО
 
   await sendEmail({
     to: email,
