@@ -1,105 +1,96 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 
-export default function LanguageThemeControls() {
-  const [lang, setLang] = useState('ru');
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+interface LanguageSelectorProps {
+  onSelect: (lang: string) => void;
+}
 
-  useEffect(() => {
-    setLang(localStorage.getItem('nerv-lang') || 'ru');
-  }, []);
+export default function LanguageSelector({ onSelect }: LanguageSelectorProps) {
+  const [selected, setSelected] = useState<string | null>(null);
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  const languages = [
+    { code: 'ru', label: '🇷🇺 Русский', flag: '🇷🇺' },
+    { code: 'en', label: '🇬🇧 English', flag: '🇬🇧' },
+  ];
 
-  function changeLang(value: string) {
-    setLang(value);
-    localStorage.setItem('nerv-lang', value);
-    setOpen(false);
-  }
+  const handleSelect = (lang: string) => {
+    setSelected(lang);
+    setTimeout(() => {
+      onSelect(lang);
+    }, 400);
+  };
 
   return (
-    <div className="lang-switch" ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        className="lang-btn"
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-label="Язык"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 10000,
+        background: '#0A0A0F',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 40,
+      }}
+    >
+      {/* Логотип */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5 }}
         style={{
-          background: 'none',
-          border: '1px solid rgba(139, 92, 246, 0.3)',
-          borderRadius: 6,
-          padding: '2px 6px',
-          fontSize: 13,
-          cursor: 'pointer',
-          color: 'rgba(255,255,255,0.7)',
-          lineHeight: 1.4,
+          fontSize: 64,
+          fontWeight: 1000,
+          color: '#00E5FF',
+          textShadow: '0 0 40px rgba(0,229,255,0.6)',
         }}
       >
-        🌐 {lang.toUpperCase()}
-      </button>
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: 4,
-            background: '#1a1a2e',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-            borderRadius: 8,
-            padding: 4,
-            zIndex: 100,
-            minWidth: 60,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => changeLang('ru')}
-            style={{
-              display: 'block',
-              width: '100%',
-              background: lang === 'ru' ? 'rgba(139,92,246,0.2)' : 'none',
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 12px',
-              cursor: 'pointer',
-              color: lang === 'ru' ? '#8B5CF6' : 'rgba(255,255,255,0.7)',
-              fontSize: 13,
-              textAlign: 'left',
-            }}
-          >
-            🇷🇺 RU
-          </button>
-          <button
-            type="button"
-            onClick={() => changeLang('en')}
-            style={{
-              display: 'block',
-              width: '100%',
-              background: lang === 'en' ? 'rgba(139,92,246,0.2)' : 'none',
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 12px',
-              cursor: 'pointer',
-              color: lang === 'en' ? '#8B5CF6' : 'rgba(255,255,255,0.7)',
-              fontSize: 13,
-              textAlign: 'left',
-            }}
-          >
-            🇬🇧 EN
-          </button>
+        Н
+      </motion.div>
+
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, letterSpacing: 4 }}>
+          ВЫБЕРИТЕ ЯЗЫК / SELECT LANGUAGE
+        </p>
+
+        <div style={{ display: 'flex', gap: 24, marginTop: 24 }}>
+          {languages.map((lang) => (
+            <motion.button
+              key={lang.code}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleSelect(lang.code)}
+              style={{
+                padding: '16px 36px',
+                borderRadius: 16,
+                border: selected === lang.code
+                  ? '2px solid #00E5FF'
+                  : '1px solid rgba(255,255,255,0.15)',
+                background: selected === lang.code
+                  ? 'rgba(0,229,255,0.12)'
+                  : 'rgba(255,255,255,0.05)',
+                color: selected === lang.code ? '#00E5FF' : '#fff',
+                fontSize: 20,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                minWidth: 140,
+              }}
+            >
+              {lang.flag} {lang.label}
+            </motion.button>
+          ))}
         </div>
-      )}
-    </div>
+      </div>
+
+      <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
+        {selected === 'ru' ? 'Загрузка...' : selected === 'en' ? 'Loading...' : ''}
+      </p>
+    </motion.div>
   );
 }

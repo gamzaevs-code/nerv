@@ -2,12 +2,32 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LanguageSelector from './LanguageSelector';
 
 export default function SplashScreen({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(true);
+  const [showLanguage, setShowLanguage] = useState(true);
+  const [language, setLanguage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const handleLanguageSelect = (lang: string) => {
+    setLanguage(lang);
+    setShowLanguage(false);
+    // Сохраняем язык в localStorage
+    localStorage.setItem('nerv-language', lang);
+    // Запускаем заставку
+    setTimeout(() => setShowSplash(true), 300);
+  };
+
   useEffect(() => {
+    // Проверяем, есть ли сохранённый язык
+    const savedLang = localStorage.getItem('nerv-language');
+    if (savedLang) {
+      setLanguage(savedLang);
+      setShowLanguage(false);
+      setShowSplash(true);
+    }
+
     // Автовоспроизведение музыки
     if (audioRef.current) {
       audioRef.current.volume = 0.5;
@@ -24,8 +44,12 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
 
   return (
     <>
+      {/* ✅ ВЫБОР ЯЗЫКА */}
+      {showLanguage && <LanguageSelector onSelect={handleLanguageSelect} />}
+
+      {/* ✅ ЗАСТАВКА С ВИДЕО */}
       <AnimatePresence>
-        {showSplash && (
+        {showSplash && !showLanguage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -42,7 +66,6 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
               flexDirection: 'column',
             }}
           >
-            {/* Видео — muted=true для автовоспроизведения */}
             <video
               src="/splash.mp4"
               autoPlay
@@ -58,7 +81,6 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
               }}
             />
 
-            {/* Аудио */}
             <audio
               ref={audioRef}
               src="/splash-audio.mp3"
@@ -66,7 +88,6 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
               preload="auto"
             />
 
-            {/* Прогресс-бар */}
             <div
               style={{
                 position: 'absolute',
@@ -91,7 +112,6 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
               />
             </div>
 
-            {/* Кнопка "Пропустить" */}
             <button
               onClick={() => setShowSplash(false)}
               style={{
@@ -114,7 +134,7 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
                 e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
               }}
             >
-              Пропустить ⏭
+              {language === 'en' ? 'Skip ⏭' : 'Пропустить ⏭'}
             </button>
           </motion.div>
         )}
