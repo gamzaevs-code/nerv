@@ -10,6 +10,10 @@ export default function VerifyEmailClient() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
+  // ✅ ОТЛАДКА: выводим токен в консоль
+  console.log('🔑 Token from URL:', token);
+  console.log('🔗 Full URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
+
   useEffect(() => {
     if (!token) {
       setStatus('error');
