@@ -36,7 +36,8 @@ export async function POST(request: Request) {
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const verifyUrl = `${appUrl}/api/auth/verify?token=${verificationToken}`;
+  // ✅ ИСПРАВЛЕНО: ссылка на страницу /verify-email (а не /api/auth/verify)
+  const verifyUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
   await sendEmail({
     to: user.email,
