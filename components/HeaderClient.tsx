@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import LogoutButton from './LogoutButton';
-import LanguageThemeControls from './LanguageThemeControls';
+import LanguageToggle from './LanguageToggle';
 import NervLogo from './NervLogo';
 import BackButton from './BackButton';
 
@@ -28,7 +28,7 @@ export default function HeaderClient({
         <>
           <Link className="neon-button-outline" href="/login" onClick={() => setOpen(false)}>🔑 Войти</Link>
           <Link className="neon-button" href="/signup" onClick={() => setOpen(false)}>📝 Зарегистрироваться</Link>
-          <LanguageThemeControls />
+          <LanguageToggle />
         </>
       );
     }
@@ -78,7 +78,7 @@ export default function HeaderClient({
     return (
       <>
         {commonItems}
-        <LanguageThemeControls />
+        <LanguageToggle />
         {roleItems()}
         <LogoutButton />
       </>
@@ -87,20 +87,50 @@ export default function HeaderClient({
 
   if (simplified) {
     return (
-      <motion.header className="container nav neon-header simplified-header" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
-        <Link className="logo" href="/dashboard" aria-label="НЕРВ — дашборд"><NervLogo /></Link>
-        <nav className="nav-links simplified-nav"><BackButton /></nav>
+      <motion.header
+        className="container nav neon-header simplified-header"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22 }}
+      >
+        <Link className="logo" href="/dashboard" aria-label="НЕРВ — дашборд">
+          <NervLogo />
+        </Link>
+        <nav className="nav-links simplified-nav">
+          <BackButton />
+        </nav>
       </motion.header>
     );
   }
 
   return (
-    <motion.header className="container nav neon-header" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
-      <Link className="logo" href="/" aria-label="НЕРВ — главная"><NervLogo /></Link>
-      <button className="burger-button" type="button" onClick={() => setOpen((value) => !value)} aria-label="Открыть меню" aria-expanded={open}>
-        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.18 }}>{open ? '✕' : '☰'}</motion.span>
+    <motion.header
+      className="container nav neon-header"
+      initial={{ opacity: 0, y: -12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22 }}
+    >
+      <Link className="logo" href="/" aria-label="НЕРВ — главная">
+        <NervLogo />
+      </Link>
+
+      <button
+        className="burger-button"
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-label="Открыть меню"
+        aria-expanded={open}
+      >
+        <motion.span
+          animate={{ rotate: open ? 90 : 0 }}
+          transition={{ duration: 0.18 }}
+        >
+          {open ? '✕' : '☰'}
+        </motion.span>
       </button>
+
       <nav className="nav-links desktop-nav">{renderMenu()}</nav>
+
       <AnimatePresence>
         {open && (
           <motion.nav
