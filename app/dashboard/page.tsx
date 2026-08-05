@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import QuickActions from '@/components/QuickActions';
 import DashboardTabs from '@/components/DashboardTabs';
+import OnlinePlayers from '@/components/OnlinePlayers';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
       select: {
         reputation: true,
         completedTasksCount: true,
-        emailVerified: true, // ✅ ДОБАВЛЕНО
+        emailVerified: true,
         balance: true,
       },
     }),
@@ -168,7 +169,7 @@ export default async function DashboardPage() {
           <QuickActions role={user.role} />
         </div>
 
-        {/* ✅ Активные задания — для игрока */}
+        {/* ✅ АКТИВНЫЕ ЗАДАНИЯ — ДЛЯ ИГРОКА */}
         {isPlayer && playingTasks.filter((t) => t.status === 'taken').length > 0 && (
           <section className="glass-card stack" style={{ marginTop: 18 }}>
             <span
@@ -201,6 +202,11 @@ export default async function DashboardPage() {
             </div>
           </section>
         )}
+
+        {/* ✅ ОКНО "КТО В СЕТИ" */}
+        <section className="glass-card stack" style={{ marginTop: 18 }}>
+          <OnlinePlayers />
+        </section>
 
         <DashboardTabs
           stats={{
