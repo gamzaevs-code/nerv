@@ -22,7 +22,6 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  // ✅ ДОБАВЛЕН emailVerified В SELECT
   const [fullUser, createdTasks, playingTasks, votes, transactions] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
@@ -89,31 +88,15 @@ export default async function DashboardPage() {
             Игровой центр «Нерва»: быстрые действия, статистика, задания, голосования и личный прогресс.
           </p>
 
-          {/* ✅ КНОПКА "ПОДТВЕРДИТЬ EMAIL" */}
+          {/* ✅ НЕКЛИКАБЕЛЬНОЕ УВЕДОМЛЕНИЕ О НЕПОДТВЕРЖДЁННОМ EMAIL (кнопка удалена) */}
           {!fullUser?.emailVerified && (
-            <div
-              className="glass-card"
-              style={{
-                marginTop: 16,
-                borderColor: 'rgba(255, 209, 102, 0.5)',
-                background: 'rgba(255, 209, 102, 0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                flexWrap: 'wrap',
-              }}
-            >
-              <span style={{ fontSize: 24 }}>⚠️</span>
-              <div style={{ flex: 1 }}>
-                <b>Email не подтверждён</b>
-                <p className="muted" style={{ margin: 0, fontSize: 14 }}>
-                  Подтвердите email, чтобы получить полный доступ.
-                </p>
-              </div>
-              <Link className="neon-button-outline" href="/verify-email">
-                Подтвердить email
-              </Link>
-            </div>
+            <p className="muted" style={{ marginTop: 16, fontSize: 14 }}>
+              ⚠️ Ваш email ещё не подтверждён. Проверьте почту и перейдите по ссылке из письма.
+              Если письмо не пришло — посетите страницу{' '}
+              <Link href="/verify-email" style={{ color: '#8B5CF6' }}>
+                подтверждения email
+              </Link>.
+            </p>
           )}
 
           <div className="nav-links" style={{ marginTop: 8 }}>

@@ -3,40 +3,59 @@
 import { FormEvent, useState } from 'react';
 
 interface Props {
-  email: string;
+  email?: string; // необязательный — если email неизвестен, покажем поле для ввода
 }
 
 export default function ResendVerificationForm({ email }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [message, setMessage] = useState('');
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus('sending');
+    setMessage('');
 
-    await fetch('/api/auth/resend-verification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
+    const formData = new FormData(e.currentTarget);
+    const emailValue = email || (formData.get('email') as string);
 
-    setStatus('sent');
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailValue }),
+      });
+      const data = await res.json();
+      setMessage(data.message || (res.ok ? 'Письмо отправлено повторно.' : 'Не удалось отправить.'));
+      setStatus('sent');
+    } catch {
+      setMessage('Ошибка сети. Попробуйте позже.');
+      setStatus('idle');
+    }
   }
 
   return (
-    <form onSubmit={onSubmit}>
-      <input type="hidden" name="email" value={email} />
+    <form onSubmit={onSubmit} className="stack" style={{ gap: 8 }}>
+      {!email && (
+        <input
+          name="email"
+          type="email"
+          placeholder="Ваш email"
+          required
+          className="neon-input"
+        />
+      )}
       <button
         type="submit"
         className="neon-button"
-        style={{ marginTop: 16 }}
         disabled={status === 'sending'}
       >
         {status === 'sending'
           ? 'Отправляем...'
           : status === 'sent'
             ? '✓ Отправлено'
-            : 'Отправить письмо повторно'}
+            : 'Отправить ссылку повторно'}
       </button>
+      {message && <p className="muted" style={{ margin: 0 }}>{message}</p>}
     </form>
   );
 }
