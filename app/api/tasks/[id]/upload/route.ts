@@ -1,43 +1,35 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import Mux from '@mux/mux-node';
 
 export const runtime = 'nodejs';
-
-const mux = new Mux({
-  tokenId: process.env.MUX_TOKEN_ID!,
-  tokenSecret: process.env.MUX_TOKEN_SECRET!,
-});
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    // 1. Проверяем, авторизован ли пользователь
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const taskId = Number(params.id);
-    const body = await request.json();
-    const { uploadId } = body;
-
-    if (!uploadId) {
-      return NextResponse.json({ error: 'Upload ID is required' }, { status: 400 });
+    if (isNaN(taskId)) {
+      return NextResponse.json({ error: 'Invalid task ID' }, { status: 400 });
     }
 
-    // Проверяем, что задание существует и пользователь — игрок
+    // 2. Проверяем, что задание существует
     const task = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { playerId: true, status: true },
     });
 
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
+    // 3. Проверяем, что пользователь — игрок, который взял задание
     if (task.playerId !== user.id) {
       return NextResponse.json(
         { error: 'You are not the player of this task' },
@@ -45,6 +37,7 @@ export async function POST(
       );
     }
 
+    // 4. Проверяем, что задание в статусе "taken"
     if (task.status !== 'taken') {
       return NextResponse.json(
         { error: 'Task is not in taken status' },
@@ -52,35 +45,24 @@ export async function POST(
       );
     }
 
-    // Получаем информацию о загруженном файле из Mux
-    const upload = await mux.video.uploads.get(uploadId);
-    const assetId = upload.asset_id;
-
-    if (!assetId) {
-      return NextResponse.json(
-        { error: 'Asset not ready yet' },
-        { status: 400 }
-      );
-    }
-
-    // Обновляем задание — ставим статус "voting" и сохраняем assetId
+    // 5. ✅ ЗАГЛУШКА — меняем статус на "voting"
     await prisma.task.update({
       where: { id: taskId },
       data: {
         status: 'voting',
-        streamAssetId: assetId, // сохраняем ID для плеера
+        videoUrl: '/uploads/dummy-video.mp4',
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Видео загружено. Задание отправлено на голосование.',
-      assetId,
+      message: '✅ Видео загружено (заглушка)!',
+      videoUrl: '/uploads/dummy-video.mp4',
     });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Не удалось загрузить видео.' },
+      { error: 'Не удалось загрузить видео: ' + String(error) },
       { status: 500 }
     );
   }
