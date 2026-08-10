@@ -81,6 +81,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const sort = searchParams.get('sort');
 
     const tasks = await prisma.task.findMany({
       where: status ? { status } : {},
@@ -88,7 +89,7 @@ export async function GET(request: Request) {
         creator: { select: { name: true, id: true } },
         player: { select: { name: true, id: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: sort === 'new' ? { createdAt: 'desc' } : { createdAt: 'desc' },
     });
 
     return NextResponse.json({ tasks });

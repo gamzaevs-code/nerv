@@ -6,6 +6,15 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+function getOnlineStatus(lastSeen: Date) {
+  const now = new Date();
+  const diff = (now.getTime() - new Date(lastSeen).getTime()) / 1000 / 60;
+  if (diff < 1) return { text: 'В сети сейчас', color: '#22C55E' };
+  if (diff < 5) return { text: 'Был(а) менее 5 мин назад', color: '#22C55E' };
+  if (diff < 60) return { text: `Был(а) ${Math.floor(diff)} мин назад`, color: '#FBBF24' };
+  return { text: `Был(а) ${Math.floor(diff / 60)} ч назад`, color: '#94A3B8' };
+}
+
 export default async function PlayerPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
@@ -13,26 +22,36 @@ export default async function PlayerPage({ params }: { params: { id: string } })
   const playerId = Number(params.id);
   if (isNaN(playerId)) notFound();
 
-  const player = await prisma.user.findUnique({
-    where: { id: playerId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      balance: true,
-      reputation: true,
-      level: true,
-      experience: true,
-      completedTasksCount: true,
-      createdAt: true,
-      avatar: true,
-      bio: true,
-      location: true,
-    },
-  });
+  const [player, presence] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: playerId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        balance: true,
+        reputation: true,
+        level: true,
+        experience: true,
+        completedTasksCount: true,
+        createdAt: true,
+        avatar: true,
+        bio: true,
+        location: true,
+      },
+    }),
+    prisma.userPresence.findUnique({
+      where: { userId: playerId },
+      select: { isOnline: true, lastSeen: true },
+    }),
+  ]);
 
   if (!player) notFound();
+
+  const onlineStatus = presence
+    ? getOnlineStatus(presence.lastSeen)
+    : { text: 'Не в сети', color: '#94A3B8' };
 
   return (
     <>
@@ -49,6 +68,10 @@ export default async function PlayerPage({ params }: { params: { id: string } })
                 {player.role === 'player' ? '🎮 Игрок' : '👀 Зритель'} · Уровень {player.level}
               </p>
               <p className="muted">{player.location || 'Город не указан'}</p>
+              {/* ✅ ОНЛАЙН-СТАТУС */}
+              <span style={{ color: onlineStatus.color, fontSize: 14 }}>
+                ● {onlineStatus.text}
+              </span>
             </div>
           </div>
 
@@ -69,6 +92,16 @@ export default async function PlayerPage({ params }: { params: { id: string } })
                 {new Date(player.createdAt).toLocaleDateString('ru-RU')}
               </div>
             </div>
+          </div>
+
+          {/* ✅ КНОПКИ ДЕЙСТВИЙ */}
+          <div className="nav-links" style={{ marginTop: 8 }}>
+            <Link href={`/player/${player.id}/offer`} className="neon-button">
+              📩 Предложить задание
+            </Link>
+            <Link href={`/messages/${player.id}`} className="neon-button-outline">
+              💬 Написать
+            </Link>
           </div>
 
           <Link href="/dashboard" className="neon-button-outline" style={{ textAlign: 'center' }}>

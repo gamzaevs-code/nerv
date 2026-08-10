@@ -1,85 +1,176 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/Header';
-import TakeTaskButton from '@/components/TakeTaskButton';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export default async function TasksPage({ searchParams }: { searchParams: { q?: string; minReward?: string; maxReward?: string; sort?: string; page?: string } }) {
+export default async function MyTasksPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const q = searchParams.q?.trim() || '';
-  const minReward = Number(searchParams.minReward || 0);
-  const maxReward = Number(searchParams.maxReward || 0);
-  const sort = searchParams.sort || 'new';
-  const page = Math.max(1, Number(searchParams.page || 1));
-  const take = 20;
+  const tab = searchParams.tab || 'created';
 
-  const where = {
-    status: 'open',
-    ...(q ? { title: { contains: q } } : {}),
-    ...((minReward > 0 || maxReward > 0) ? { reward: { ...(minReward > 0 ? { gte: minReward } : {}), ...(maxReward > 0 ? { lte: maxReward } : {}) } } : {}),
-  };
-  const orderBy = sort === 'reward_asc' ? { reward: 'asc' as const } : sort === 'reward_desc' ? { reward: 'desc' as const } : { createdAt: 'desc' as const };
+  // Задания, которые пользователь создал
+  const createdTasks = await prisma.task.findMany({
+    where: { creatorId: user.id },
+    include: {
+      player: { select: { name: true } },
+      votes: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
 
-  const [tasks, total] = await Promise.all([
-    prisma.task.findMany({ where, include: { creator: { select: { name: true } } }, orderBy, skip: (page - 1) * take, take }),
-    prisma.task.count({ where }),
-  ]);
-  const pages = Math.max(1, Math.ceil(total / take));
-  const queryBase = `q=${encodeURIComponent(q)}&minReward=${minReward || ''}&maxReward=${maxReward || ''}&sort=${sort}`;
+  // Задания, которые пользователь взял (в процессе)
+  const takenTasks = await prisma.task.findMany({
+    where: {
+      playerId: user.id,
+      status: { in: ['taken', 'voting'] },
+    },
+    include: {
+      creator: { select: { name: true } },
+      votes: true,
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  // ✅ Задания, которые пользователь выполнил (зачтены)
+  const completedTasks = await prisma.task.findMany({
+    where: {
+      playerId: user.id,
+      status: { in: ['approved', 'rejected'] },
+    },
+    include: {
+      creator: { select: { name: true } },
+      votes: true,
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  let tasks = [];
+  let emptyMessage = '';
+
+  if (tab === 'created') {
+    tasks = createdTasks;
+    emptyMessage = 'Вы ещё не создали ни одного задания.';
+  } else if (tab === 'taken') {
+    tasks = takenTasks;
+    emptyMessage = 'У вас нет взятых заданий. Перейдите в "Доступные задания".';
+  } else if (tab === 'completed') {
+    tasks = completedTasks;
+    emptyMessage = 'У вас нет выполненных заданий.';
+  }
 
   return (
     <>
       <Header simplified />
       <main className="page-shell">
-        <section className="glass-card page-hero-card stack">
-          <span className="badge">Tasks / Player mode</span>
-          <h1>Доступные задания</h1>
-          <p>Фильтруйте открытые испытания по названию, награде и свежести. Берите задачу — и запускайте игровой цикл.</p>
-          <form className="form" action="/tasks">
-            <input name="q" defaultValue={q} placeholder="Поиск по названию" />
-            <div className="grid" style={{ marginTop: 0 }}>
-              <input name="minReward" type="number" min="0" defaultValue={minReward || ''} placeholder="Мин. награда" />
-              <input name="maxReward" type="number" min="0" defaultValue={maxReward || ''} placeholder="Макс. награда" />
-              <select name="sort" defaultValue={sort}>
-                <option value="new">Сначала новые</option>
-                <option value="reward_asc">Награда ↑</option>
-                <option value="reward_desc">Награда ↓</option>
-              </select>
-            </div>
-            <button className="neon-button" type="submit">Применить фильтр</button>
-          </form>
-        </section>
+        <div className="glass-card stack">
+          <span className="badge">📋 Мои задания</span>
+          <h1>Мои задания</h1>
+          <p className="muted">
+            {tab === 'created'
+              ? 'Задания, которые вы создали.'
+              : tab === 'taken'
+              ? 'Задания, которые вы взяли. Загрузите видео, чтобы открыть голосование.'
+              : 'Задания, которые вы выполнили.'}
+          </p>
 
-        <section className="grid">
-          {tasks.length === 0 && <article className="glass-card task-card"><p>Открытых заданий пока нет.</p></article>}
-          {tasks.map((task) => (
-            <article className="glass-card task-card stack" key={task.id}>
-              <span className="badge">#{task.id}</span>
-              <h2 className="neon-title">{task.title}</h2>
-              <p>{task.description || 'Без описания'}</p>
-              <p className="muted">Создатель: {task.creator.name}</p>
-              <div className="balance">{task.reward} ₽</div>
-              
-              {/* ✅ ПРОВЕРКА РОЛИ: только игроки могут брать задания */}
-              {user.role === 'player' ? (
-                <TakeTaskButton taskId={task.id} />
-              ) : (
-                <p className="muted" style={{ textAlign: 'center', marginTop: 8 }}>
-                  Только игроки могут брать задания
-                </p>
+          {/* ✅ ВКЛАДКИ */}
+          <div className="nav-links" style={{ marginTop: 8 }}>
+            <Link
+              href="/my-tasks?tab=created"
+              className={tab === 'created' ? 'neon-button' : 'neon-button-outline'}
+            >
+              📋 Созданные ({createdTasks.length})
+            </Link>
+            <Link
+              href="/my-tasks?tab=taken"
+              className={tab === 'taken' ? 'neon-button' : 'neon-button-outline'}
+            >
+              🎯 Взятые ({takenTasks.length})
+            </Link>
+            <Link
+              href="/my-tasks?tab=completed"
+              className={tab === 'completed' ? 'neon-button' : 'neon-button-outline'}
+            >
+              ✅ Выполненные ({completedTasks.length})
+            </Link>
+          </div>
+
+          {/* ✅ СПИСОК ЗАДАНИЙ */}
+          {tasks.length === 0 ? (
+            <div className="glass-card" style={{ textAlign: 'center', padding: 40 }}>
+              <p style={{ fontSize: 48 }}>📭</p>
+              <p className="muted">{emptyMessage}</p>
+              {tab === 'taken' && (
+                <Link href="/tasks" className="neon-button" style={{ marginTop: 16 }}>
+                  📋 Доступные задания
+                </Link>
               )}
-            </article>
-          ))}
-        </section>
-        <div className="nav-links" style={{ marginTop: 24, justifyContent: 'center' }}>
-          {page > 1 && <Link className="neon-button-outline" href={`/tasks?${queryBase}&page=${page - 1}`}>← Назад</Link>}
-          <span className="badge">{page} / {pages}</span>
-          {page < pages && <Link className="neon-button-outline" href={`/tasks?${queryBase}&page=${page + 1}`}>Вперёд →</Link>}
+            </div>
+          ) : (
+            <div className="grid">
+              {tasks.map((task) => {
+                const statusMap: Record<string, { label: string; color: string }> = {
+                  open: { label: '📢 Открыто', color: '#8B5CF6' },
+                  taken: { label: '🎯 Взято', color: '#FBBF24' },
+                  voting: { label: '🗳️ Голосование', color: '#F97316' },
+                  approved: { label: '✅ Зачтено', color: '#22C55E' },
+                  rejected: { label: '❌ Отклонено', color: '#EF4444' },
+                };
+                const statusInfo = statusMap[task.status] || { label: task.status, color: '#94A3B8' };
+
+                return (
+                  <Link
+                    key={task.id}
+                    href={`/task/${task.id}`}
+                    className="glass-card stack"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <span
+                      className="badge"
+                      style={{
+                        background: `${statusInfo.color}20`,
+                        color: statusInfo.color,
+                        borderColor: statusInfo.color,
+                      }}
+                    >
+                      {statusInfo.label}
+                    </span>
+                    <h3>{task.title}</h3>
+                    <p className="muted">{task.description || 'Без описания'}</p>
+                    <div className="balance" style={{ fontSize: 24 }}>
+                      {task.reward} ₽
+                    </div>
+                    {task.player && (
+                      <p className="muted" style={{ fontSize: 12 }}>
+                        Игрок: {task.player.name}
+                      </p>
+                    )}
+                    {task.creator && task.creatorId !== user.id && (
+                      <p className="muted" style={{ fontSize: 12 }}>
+                        Создатель: {task.creator.name}
+                      </p>
+                    )}
+                    {task.status === 'taken' && (
+                      <span
+                        className="neon-button"
+                        style={{ padding: '4px 12px', fontSize: 12, textAlign: 'center' }}
+                      >
+                        📹 Загрузить видео
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
     </>

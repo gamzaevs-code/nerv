@@ -8,16 +8,12 @@ export async function POST(_request: Request, { params }: { params: { id: string
   const userId = getAuthUserIdFromCookies();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // ✅ Только игроки могут брать задания
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },
   });
   if (!user || user.role !== 'player') {
-    return NextResponse.json(
-      { error: 'Только игроки могут брать задания.' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Только игроки могут брать задания.' }, { status: 403 });
   }
 
   const id = Number(params.id);
@@ -25,14 +21,15 @@ export async function POST(_request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: 'Некорректный id задания.' }, { status: 400 });
   }
 
-  const task = await prisma.task.findUnique({ where: { id } });
-  if (!task || task.status !== 'open') {
-    return NextResponse.json({ error: 'Задание недоступно.' }, { status: 409 });
-  }
-
-  const updatedTask = await prisma.task.update({
-    where: { id },
+  // ✅ АТОМАРНОЕ ВЗЯТИЕ — только если задание "open" и ещё никем не взято
+  const updated = await prisma.task.updateMany({
+    where: { id, status: 'open', playerId: null },
     data: { status: 'taken', playerId: userId },
   });
-  return NextResponse.json(updatedTask);
+
+  if (updated.count === 0) {
+    return NextResponse.json({ error: 'Задание уже взято или недоступно.' }, { status: 409 });
+  }
+
+  return NextResponse.json({ success: true, taskId: id });
 }

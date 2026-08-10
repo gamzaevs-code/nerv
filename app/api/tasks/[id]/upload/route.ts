@@ -1,69 +1,58 @@
 import { NextResponse } from 'next/server';
+import { writeFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+const MAX_SIZE = 60 * 1024 * 1024; // 60 МБ
+const ALLOWED = /^video\//;
+
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
-    // 1. Проверяем, авторизован ли пользователь
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const taskId = Number(params.id);
-    if (isNaN(taskId)) {
-      return NextResponse.json({ error: 'Invalid task ID' }, { status: 400 });
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      return NextResponse.json({ error: 'Некорректный id задания.' }, { status: 400 });
     }
 
-    // 2. Проверяем, что задание существует
     const task = await prisma.task.findUnique({
       where: { id: taskId },
+      select: { playerId: true, status: true },
     });
+    if (!task) return NextResponse.json({ error: 'Задание не найдено.' }, { status: 404 });
+    if (task.playerId !== user.id) return NextResponse.json({ error: 'Вы не игрок этого задания.' }, { status: 403 });
+    if (task.status !== 'taken') return NextResponse.json({ error: 'Задание не в статусе "взято".' }, { status: 400 });
 
-    if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    const formData = await request.formData();
+    const file = formData.get('video');
+    if (!(file instanceof File) || !ALLOWED.test(file.type)) {
+      return NextResponse.json({ error: 'Необходимо загрузить видео-файл.' }, { status: 400 });
+    }
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: 'Видео слишком большое (макс. 60 МБ).' }, { status: 400 });
     }
 
-    // 3. Проверяем, что пользователь — игрок, который взял задание
-    if (task.playerId !== user.id) {
-      return NextResponse.json(
-        { error: 'You are not the player of this task' },
-        { status: 403 }
-      );
-    }
+    const ext = path.extname(file.name) || '.webm';
+    const fileName = `task-${taskId}-${Date.now()}${ext}`;
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    await mkdir(uploadDir, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(path.join(uploadDir, fileName), buffer);
 
-    // 4. Проверяем, что задание в статусе "taken"
-    if (task.status !== 'taken') {
-      return NextResponse.json(
-        { error: 'Task is not in taken status' },
-        { status: 400 }
-      );
-    }
+    const videoUrl = `/uploads/${fileName}`;
 
-    // 5. ✅ ЗАГЛУШКА — меняем статус на "voting"
     await prisma.task.update({
       where: { id: taskId },
-      data: {
-        status: 'voting',
-        videoUrl: '/uploads/dummy-video.mp4',
-      },
+      data: { status: 'voting', videoUrl },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: '✅ Видео загружено (заглушка)!',
-      videoUrl: '/uploads/dummy-video.mp4',
-    });
+    return NextResponse.json({ success: true, message: 'Видео загружено. Задание отправлено на голосование.', videoUrl });
   } catch (error) {
     console.error('Upload error:', error);
-    return NextResponse.json(
-      { error: 'Не удалось загрузить видео: ' + String(error) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Не удалось загрузить видео.' }, { status: 500 });
   }
 }
