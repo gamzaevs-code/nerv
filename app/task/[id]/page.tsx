@@ -6,14 +6,8 @@ import UploadVideoForm from '@/components/UploadVideoForm';
 import MuxPlayerWrapper from '@/components/MuxPlayer';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import Mux from '@mux/mux-node';
 
 export const dynamic = 'force-dynamic';
-
-const mux = new Mux({
-  tokenId: process.env.MUX_TOKEN_ID!,
-  tokenSecret: process.env.MUX_TOKEN_SECRET!,
-});
 
 export default async function TaskDetailPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
@@ -30,10 +24,15 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   });
   if (!task) notFound();
 
-  // Получаем playbackId из Mux по assetId
+  // ✅ Получаем playbackId из Mux по assetId (только если есть ключи)
   let playbackId = null;
-  if (task.streamAssetId) {
+  if (task.streamAssetId && process.env.MUX_TOKEN_ID && process.env.MUX_TOKEN_SECRET) {
     try {
+      const Mux = (await import('@mux/mux-node')).default;
+      const mux = new Mux({
+        tokenId: process.env.MUX_TOKEN_ID,
+        tokenSecret: process.env.MUX_TOKEN_SECRET,
+      });
       const asset = await mux.video.assets.get(task.streamAssetId);
       playbackId = asset.playback_ids?.[0]?.id || null;
     } catch {
@@ -59,11 +58,25 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
           </p>
           <div className="balance">{task.reward} ₽</div>
 
-          {/* ✅ ПЛЕЕР MUX */}
+          {/* ✅ ВИДЕО — С ПЛЕЙСХОЛДЕРОМ ДЛЯ ЗАГЛУШКИ */}
           {playbackId ? (
             <MuxPlayerWrapper playbackId={playbackId} title={task.title} />
-          ) : task.videoUrl ? (
+          ) : task.videoUrl && task.videoUrl !== '/uploads/dummy-video.mp4' ? (
             <video src={task.videoUrl} controls style={{ width: '100%', borderRadius: 16 }} />
+          ) : task.status === 'voting' ? (
+            <div
+              style={{
+                width: '100%',
+                padding: 60,
+                textAlign: 'center',
+                background: 'rgba(0,0,0,0.3)',
+                borderRadius: 16,
+                border: '1px dashed rgba(139,92,246,0.3)',
+              }}
+            >
+              <p style={{ fontSize: 48 }}>🎬</p>
+              <p className="muted">Видео загружается... Ожидайте появления.</p>
+            </div>
           ) : task.status === 'taken' ? (
             <p className="muted" style={{ textAlign: 'center', padding: 16 }}>
               🎬 Видео пока не загружено
