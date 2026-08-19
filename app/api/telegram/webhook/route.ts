@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 
-// ✅ Правильный импорт через require
 const TelegramBot = require('node-telegram-bot-api');
 
 const token = process.env.BOT_TOKEN;
@@ -11,7 +10,6 @@ if (!token) {
   console.error('❌ BOT_TOKEN is not set');
 }
 
-// ✅ Создаём бота ТОЛЬКО если есть токен
 const bot = token ? new TelegramBot(token) : null;
 
 export async function POST(req: Request) {
