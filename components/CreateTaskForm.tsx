@@ -10,7 +10,6 @@ export default function CreateTaskForm({ role }: { role: string }) {
   const [loading, setLoading] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   const isViewer = role === 'viewer';
 
@@ -66,46 +65,11 @@ export default function CreateTaskForm({ role }: { role: string }) {
     }
   }
 
-  async function uploadToMux(file: File): Promise<string> {
-    // 1. Получаем URL для загрузки
-    const uploadRes = await fetch('/api/video/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!uploadRes.ok) {
-      throw new Error('Failed to get upload URL');
-    }
-
-    const { url: uploadUrl, uploadId } = await uploadRes.json();
-
-    // 2. Загружаем файл
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', uploadUrl, true);
-
-    await new Promise((resolve, reject) => {
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          setUploadProgress(Math.round((e.loaded / e.total) * 100));
-        }
-      };
-      xhr.onload = () => {
-        if (xhr.status === 200) resolve(null);
-        else reject(new Error(`Upload failed with status ${xhr.status}`));
-      };
-      xhr.onerror = () => reject(new Error('Upload failed'));
-      xhr.send(file);
-    });
-
-    return uploadId;
-  }
-
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
     setMessage('');
-    setUploadProgress(0);
 
     const formData = new FormData(event.currentTarget);
     const title = formData.get('title') as string;
@@ -113,12 +77,9 @@ export default function CreateTaskForm({ role }: { role: string }) {
     const reward = Number(formData.get('reward'));
 
     try {
-      let uploadId = null;
-
-      if (videoFile && videoFile.size > 0) {
-        // Загружаем реальное видео через Mux
-        uploadId = await uploadToMux(videoFile);
-      }
+      // ✅ ВИДЕО ПРИ СОЗДАНИИ НЕ ОТПРАВЛЯЕМ В MUX
+      // (Mux убран из проекта; видео добавляется игроком на этапе выполнения через UploadVideoForm)
+      // Передаём только title, description, reward (tasks/route.ts читает videoUrl, не uploadId)
 
       const createRes = await fetch('/api/tasks', {
         method: 'POST',
@@ -127,7 +88,6 @@ export default function CreateTaskForm({ role }: { role: string }) {
           title,
           description,
           reward,
-          uploadId, // передаём uploadId вместо videoUrl
         }),
       });
 
@@ -177,65 +137,8 @@ export default function CreateTaskForm({ role }: { role: string }) {
         <input name="reward" type="number" min="1" defaultValue="100" required className="neon-input" />
       </label>
 
-      {!isViewer && (
-        <label style={{ marginTop: 8 }}>
-          <span style={{ display: 'block', marginBottom: 8 }}>📹 Видео (опционально)</span>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className={isRecording ? 'neon-button' : 'neon-button-outline'}
-              onClick={isRecording ? stopRecording : startRecording}
-              style={{ flex: 1 }}
-            >
-              {isRecording ? '⏹️ Остановить запись' : '🎥 Записать с камеры'}
-            </button>
-            <label className="neon-button-outline" style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }}>
-              📁 Загрузить файл
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleVideoChange}
-                style={{ display: 'none' }}
-              />
-            </label>
-          </div>
-        </label>
-      )}
-
-      {uploadProgress > 0 && uploadProgress < 100 && (
-        <div style={{ marginTop: 8 }}>
-          <p className="muted">Загрузка видео: {uploadProgress}%</p>
-          <div style={{ width: '100%', height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>
-            <div
-              style={{
-                width: `${uploadProgress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #00E5FF, #6D28D9)',
-                borderRadius: 4,
-                transition: 'width 0.3s ease',
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {isRecording && (
-        <div style={{ marginTop: 8, padding: 12, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid #EF4444' }}>
-          <p style={{ color: '#EF4444', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: '#EF4444', animation: 'pulse 1s infinite' }} />
-            🔴 Идёт запись...
-          </p>
-        </div>
-      )}
-
-      {videoPreview && (
-        <div style={{ marginTop: 8 }}>
-          <video src={videoPreview} controls style={{ width: '100%', maxHeight: 300, borderRadius: 8 }} />
-          <p className="muted" style={{ fontSize: 12 }}>
-            {videoFile?.name} ({(videoFile?.size / 1024 / 1024).toFixed(2)} MB)
-          </p>
-        </div>
-      )}
+      {/* ✅ СКРЫВАЕМ БЛОК ВИДЕО ПРИ СОЗДАНИИ (видео добавляется на этапе выполнения) */}
+      {/* {!isViewer && ( ... )} — видео при создании не требуется */}
 
       {error && <div className="error">{error}</div>}
       {message && <div className="success">{message}</div>}
@@ -243,13 +146,6 @@ export default function CreateTaskForm({ role }: { role: string }) {
       <button className="neon-button" disabled={loading} type="submit" style={{ width: '100%' }}>
         {loading ? 'Создаём...' : '🚀 Создать задание'}
       </button>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-      `}</style>
     </form>
   );
 }

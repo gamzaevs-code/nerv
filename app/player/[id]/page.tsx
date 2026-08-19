@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import TaskOfferForm from '@/components/TaskOfferForm';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -20,7 +21,7 @@ export default async function PlayerPage({ params }: { params: { id: string } })
   if (!user) redirect('/login');
 
   const playerId = Number(params.id);
-  if (isNaN(playerId)) notFound();
+  if (Number.isNaN(playerId)) notFound();
 
   const [player, presence] = await Promise.all([
     prisma.user.findUnique({
@@ -94,11 +95,13 @@ export default async function PlayerPage({ params }: { params: { id: string } })
             </div>
           </div>
 
-          {/* ✅ КНОПКИ ДЕЙСТВИЙ */}
+          {/* ✅ ПРЕДЛОЖИТЬ ЗАДАНИЕ — форма (исправление сломанной ссылки /offer) */}
+          <div style={{ marginTop: 8 }}>
+            <TaskOfferForm playerId={player.id} />
+          </div>
+
+          {/* ✅ НАПИСАТЬ */}
           <div className="nav-links" style={{ marginTop: 8 }}>
-            <Link href={`/player/${player.id}/offer`} className="neon-button">
-              📩 Предложить задание
-            </Link>
             <Link href={`/messages/${player.id}`} className="neon-button-outline">
               💬 Написать
             </Link>
