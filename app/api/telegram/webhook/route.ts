@@ -1,19 +1,25 @@
 import { NextResponse } from 'next/server';
-const TelegramBot = require('node-telegram-bot-api');
-import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 
+// ✅ Правильный импорт через require
+const TelegramBot = require('node-telegram-bot-api');
+
 const token = process.env.BOT_TOKEN;
 if (!token) {
-  throw new Error('BOT_TOKEN is not set');
+  console.error('❌ BOT_TOKEN is not set');
 }
 
-const bot = new TelegramBot(token);
+// ✅ Создаём бота ТОЛЬКО если есть токен
+const bot = token ? new TelegramBot(token) : null;
 
 export async function POST(req: Request) {
   try {
+    if (!bot) {
+      return NextResponse.json({ error: 'Bot not configured' }, { status: 500 });
+    }
+
     const body = await req.json();
     const { message } = body;
 
@@ -24,25 +30,20 @@ export async function POST(req: Request) {
     const chatId = message.chat.id;
     const text = message.text;
 
-    // /start
     if (text === '/start') {
       await bot.sendMessage(
         chatId,
         '🤖 *Добро пожаловать в НЕРВ Бот!*\n\n' +
-        'Здесь ты можешь:\n' +
-        '📋 Смотреть задания (/tasks)\n' +
-        '💰 Проверить баланс (/profile)\n' +
-        '📝 Создать задание (/create)\n' +
-        '💳 Пополнить или вывести деньги (/wallet)\n\n' +
-        'Используй кнопки ниже для навигации.',
+        '📋 /tasks — задания\n' +
+        '💰 /profile — баланс\n' +
+        '📝 /create — создать задание\n' +
+        '💳 /wallet — кошелёк',
         { parse_mode: 'Markdown' }
       );
       return NextResponse.json({ ok: true });
     }
 
-    // /profile
     if (text === '/profile') {
-      // Находим пользователя по chatId (нужно связать с аккаунтом)
       const user = await prisma.user.findFirst({
         where: { telegramChatId: String(chatId) },
       });
@@ -68,8 +69,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Неизвестная команда
-    await bot.sendMessage(chatId, '🤔 Неизвестная команда. Используй /start для списка команд.');
+    await bot.sendMessage(chatId, '🤔 Неизвестная команда. Используй /start.');
 
     return NextResponse.json({ ok: true });
   } catch (error) {
