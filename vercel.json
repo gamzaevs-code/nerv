@@ -8,5 +8,11 @@
     "app/api/**/route.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/telegram/webhook",
+      "dest": "/api/telegram/webhook"
+    }
+  ]
 }
