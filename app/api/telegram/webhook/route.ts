@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import TelegramBot from 'node-telegram-bot-api';
+const TelegramBot = require('node-telegram-bot-api');
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
