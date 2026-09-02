@@ -95,12 +95,10 @@ export default async function PlayerPage({ params }: { params: { id: string } })
             </div>
           </div>
 
-          {/* ✅ ПРЕДЛОЖИТЬ ЗАДАНИЕ — форма (исправление сломанной ссылки /offer) */}
+                   {/* ✅ ПРЕДЛОЖИТЬ ЗАДАНИЕ — форма (исправление сломанной ссылки /offer) */}
           <div style={{ marginTop: 8 }}>
             <TaskOfferForm playerId={player.id} />
           </div>
-
-          {/* ✅ НАПИСАТЬ */}
           <div className="nav-links" style={{ marginTop: 8 }}>
             <Link href={`/messages/${player.id}`} className="neon-button-outline">
               💬 Написать
