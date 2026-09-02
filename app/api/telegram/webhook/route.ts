@@ -2,32 +2,8 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-// Безопасная инициализация бота
-let bot: any = null;
-
-try {
-  // Динамический импорт, чтобы не ломать сборку
-  const TelegramBot = require('node-telegram-bot-api');
-  const token = process.env.BOT_TOKEN;
-  
-  if (token) {
-    bot = new TelegramBot(token);
-    console.log('✅ Telegram bot initialized');
-  } else {
-    console.warn('⚠️ BOT_TOKEN not set, bot disabled');
-  }
-} catch (error) {
-  console.warn('⚠️ Telegram bot not available:', error);
-}
-
 export async function POST(req: Request) {
   try {
-    // Если бот не инициализирован — просто отвечаем ok
-    if (!bot) {
-      console.warn('⚠️ Bot not available, ignoring request');
-      return NextResponse.json({ ok: true, warning: 'Bot disabled' });
-    }
-
     const body = await req.json();
     const { message } = body;
 
@@ -38,43 +14,36 @@ export async function POST(req: Request) {
     const chatId = message.chat.id;
     const text = message.text;
 
-    // /start — ОБЯЗАТЕЛЬНО ОТВЕЧАЕТ
+    // Отправляем ответ напрямую через Telegram API
+    const token = process.env.BOT_TOKEN;
+    if (!token) {
+      return NextResponse.json({ error: 'No token' }, { status: 500 });
+    }
+
+    let replyText = '🤔 Неизвестная команда. Используй /help.';
+    
     if (text === '/start') {
-      await bot.sendMessage(chatId, '✅ Бот работает! Отправь /help для списка команд.');
-      return NextResponse.json({ ok: true });
+      replyText = '✅ Бот работает!';
+    } else if (text === '/help') {
+      replyText = '📖 Команды: /start, /help';
     }
 
-    // /help
-    if (text === '/help') {
-      await bot.sendMessage(
-        chatId,
-        `📖 *Команды бота:*\n\n` +
-        `/start — Проверка работы\n` +
-        `/profile — Мой профиль\n` +
-        `/tasks — Список заданий\n` +
-        `/help — Помощь`,
-        { parse_mode: 'Markdown' }
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Неизвестная команда
-    await bot.sendMessage(chatId, '🤔 Неизвестная команда. Используй /help.');
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: replyText,
+      }),
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('❌ Telegram webhook error:', error);
-    // Всегда возвращаем ok, чтобы Telegram не пересылал снова
-    return NextResponse.json({ ok: true, error: String(error) });
+    console.error('Error:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
-// GET для проверки
 export async function GET() {
-  return NextResponse.json({ 
-    ok: true, 
-    message: 'Webhook is alive!',
-    bot_available: !!bot,
-    time: new Date().toISOString()
-  });
+  return NextResponse.json({ ok: true, message: 'Webhook is alive!' });
 }
