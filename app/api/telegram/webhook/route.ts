@@ -28,31 +28,22 @@ export async function POST(req: Request) {
     const chatId = message.chat.id;
     const text = message.text;
 
-    // --- КОМАНДЫ ---
-
-    // /start
     if (text === '/start') {
       await bot.sendMessage(
         chatId,
-        `🤖 *Добро пожаловать в НЕРВ Бот!*
-
-💰 Управляй заданиями, балансом и репутацией прямо из Telegram.
-
-📋 *Доступные команды:*
-/start — Главное меню
-/profile — Мой профиль
-/tasks — Список заданий
-/create — Создать задание
-/wallet — Кошелёк
-/link — Привязать аккаунт
-
-🎯 Выбери действие!`,
+        `🤖 *Добро пожаловать в НЕРВ Бот!*\n\n` +
+        `💰 Управляй заданиями, балансом и репутацией прямо из Telegram.\n\n` +
+        `📋 *Доступные команды:*\n` +
+        `/start — Главное меню\n` +
+        `/profile — Мой профиль\n` +
+        `/tasks — Список заданий\n` +
+        `/help — Помощь\n\n` +
+        `🎯 Выбери действие!`,
         { parse_mode: 'Markdown' }
       );
       return NextResponse.json({ ok: true });
     }
 
-    // /profile
     if (text === '/profile') {
       const user = await prisma.user.findFirst({
         where: { telegramChatId: String(chatId) },
@@ -62,8 +53,7 @@ export async function POST(req: Request) {
         await bot.sendMessage(
           chatId,
           '❌ *Ты не привязан к аккаунту НЕРВ!*\n\n' +
-          'Перейди на сайт и привяжи Telegram в настройках профиля.\n' +
-          'Или используй команду /link для привязки.',
+          'Перейди на сайт и привяжи Telegram в настройках профиля.',
           { parse_mode: 'Markdown' }
         );
         return NextResponse.json({ ok: true });
@@ -71,34 +61,28 @@ export async function POST(req: Request) {
 
       await bot.sendMessage(
         chatId,
-        `👤 *Твой профиль*
-
-Баланс: *${user.balance} ₽*
-Репутация: *${user.reputation}*
-Роль: *${user.role}*
-Уровень: *${user.level}*
-Выполнено заданий: *${user.completedTasksCount}*`,
+        `👤 *Твой профиль*\n\n` +
+        `Баланс: *${user.balance} ₽*\n` +
+        `Репутация: *${user.reputation}*\n` +
+        `Роль: *${user.role}*\n` +
+        `Уровень: *${user.level}*`,
         { parse_mode: 'Markdown' }
       );
       return NextResponse.json({ ok: true });
     }
 
-    // /tasks
     if (text === '/tasks') {
       const tasks = await prisma.task.findMany({
         where: { status: 'open' },
         take: 5,
-        include: {
-          creator: { select: { name: true } },
-        },
+        include: { creator: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
       });
 
       if (tasks.length === 0) {
         await bot.sendMessage(
           chatId,
-          '📭 *Нет открытых заданий*\n\n' +
-          'Загляни позже или создай своё задание через /create',
+          '📭 *Нет открытых заданий*\n\nЗагляни позже!',
           { parse_mode: 'Markdown' }
         );
         return NextResponse.json({ ok: true });
@@ -108,41 +92,16 @@ export async function POST(req: Request) {
       tasks.forEach((task, index) => {
         message += `${index + 1}. *${task.title}*\n`;
         message += `   Награда: *${task.reward} ₽*\n`;
-        message += `   Создатель: ${task.creator.name}\n`;
-        message += `   Статус: ${task.status}\n\n`;
+        message += `   Создатель: ${task.creator.name}\n\n`;
       });
 
       await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
       return NextResponse.json({ ok: true });
     }
 
-    // /help
-    if (text === '/help') {
-      await bot.sendMessage(
-        chatId,
-        `📖 *Помощь по командам*
-
-/start — Главное меню
-/profile — Мой профиль
-/tasks — Список заданий
-/create — Создать задание
-/wallet — Кошелёк
-/link — Привязать аккаунт
-
-📌 *Скоро появятся:*
-- Уведомления о новых заданиях
-- Голосование через бота
-- Вывод средств`,
-        { parse_mode: 'Markdown' }
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Неизвестная команда
     await bot.sendMessage(
       chatId,
-      '🤔 *Неизвестная команда*\n\n' +
-      'Используй /start для списка доступных команд.',
+      '🤔 *Неизвестная команда*\n\nИспользуй /start для списка команд.',
       { parse_mode: 'Markdown' }
     );
 
