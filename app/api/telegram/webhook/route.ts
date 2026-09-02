@@ -12,13 +12,19 @@ if (!token) {
 
 const bot = token ? new TelegramBot(token) : null;
 
+// ✅ ПРОСТАЯ ВЕРСИЯ ДЛЯ ПРОВЕРКИ
 export async function POST(req: Request) {
   try {
+    console.log('📨 Webhook received!');
+    
     if (!bot) {
+      console.error('❌ Bot not configured');
       return NextResponse.json({ error: 'Bot not configured' }, { status: 500 });
     }
 
     const body = await req.json();
+    console.log('📨 Body:', body);
+    
     const { message } = body;
 
     if (!message) {
@@ -28,22 +34,29 @@ export async function POST(req: Request) {
     const chatId = message.chat.id;
     const text = message.text;
 
+    console.log(`📨 Chat ID: ${chatId}, Text: ${text}`);
+
+    // /start - ОБЯЗАТЕЛЬНО ОТВЕЧАЕТ
     if (text === '/start') {
+      await bot.sendMessage(chatId, '✅ Бот работает! Отправь /help для списка команд.');
+      return NextResponse.json({ ok: true });
+    }
+
+    // /help
+    if (text === '/help') {
       await bot.sendMessage(
         chatId,
-        `🤖 *Добро пожаловать в НЕРВ Бот!*\n\n` +
-        `💰 Управляй заданиями, балансом и репутацией прямо из Telegram.\n\n` +
-        `📋 *Доступные команды:*\n` +
-        `/start — Главное меню\n` +
+        `📖 *Команды бота:*\n\n` +
+        `/start — Проверка работы\n` +
         `/profile — Мой профиль\n` +
         `/tasks — Список заданий\n` +
-        `/help — Помощь\n\n` +
-        `🎯 Выбери действие!`,
+        `/help — Помощь`,
         { parse_mode: 'Markdown' }
       );
       return NextResponse.json({ ok: true });
     }
 
+    // /profile
     if (text === '/profile') {
       const user = await prisma.user.findFirst({
         where: { telegramChatId: String(chatId) },
@@ -52,9 +65,7 @@ export async function POST(req: Request) {
       if (!user) {
         await bot.sendMessage(
           chatId,
-          '❌ *Ты не привязан к аккаунту НЕРВ!*\n\n' +
-          'Перейди на сайт и привяжи Telegram в настройках профиля.',
-          { parse_mode: 'Markdown' }
+          '❌ Ты не привязан к аккаунту. Перейди на сайт и привяжи Telegram.'
         );
         return NextResponse.json({ ok: true });
       }
@@ -71,6 +82,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // /tasks
     if (text === '/tasks') {
       const tasks = await prisma.task.findMany({
         where: { status: 'open' },
@@ -80,34 +92,36 @@ export async function POST(req: Request) {
       });
 
       if (tasks.length === 0) {
-        await bot.sendMessage(
-          chatId,
-          '📭 *Нет открытых заданий*\n\nЗагляни позже!',
-          { parse_mode: 'Markdown' }
-        );
+        await bot.sendMessage(chatId, '📭 Нет открытых заданий.');
         return NextResponse.json({ ok: true });
       }
 
-      let message = '📋 *Список заданий*\n\n';
-      tasks.forEach((task, index) => {
-        message += `${index + 1}. *${task.title}*\n`;
-        message += `   Награда: *${task.reward} ₽*\n`;
-        message += `   Создатель: ${task.creator.name}\n\n`;
+      let msg = '📋 *Список заданий*\n\n';
+      tasks.forEach((task, i) => {
+        msg += `${i + 1}. *${task.title}*\n`;
+        msg += `   Награда: *${task.reward} ₽*\n`;
+        msg += `   Создатель: ${task.creator.name}\n\n`;
       });
 
-      await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      await bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
       return NextResponse.json({ ok: true });
     }
 
-    await bot.sendMessage(
-      chatId,
-      '🤔 *Неизвестная команда*\n\nИспользуй /start для списка команд.',
-      { parse_mode: 'Markdown' }
-    );
+    // Неизвестная команда
+    await bot.sendMessage(chatId, '🤔 Неизвестная команда. Используй /help.');
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('Telegram webhook error:', error);
+    console.error('❌ Telegram webhook error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+// ✅ Добавляем GET для проверки
+export async function GET() {
+  return NextResponse.json({ 
+    ok: true, 
+    message: 'Webhook is alive!',
+    time: new Date().toISOString()
+  });
 }
