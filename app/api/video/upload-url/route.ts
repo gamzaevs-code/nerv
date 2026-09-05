@@ -1,27 +1,32 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import Mux from '@mux/mux-node';
 
 export const runtime = 'nodejs';
 
-const mux = new Mux({
-  tokenId: process.env.MUX_TOKEN_ID!,
-  tokenSecret: process.env.MUX_TOKEN_SECRET!,
-});
-
 export async function POST(request: Request) {
+  // 1) Авторизация
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // 2) Проверка ключей ДО инициализации Mux
+  const tokenId = process.env.MUX_TOKEN_ID;
+  const tokenSecret = process.env.MUX_TOKEN_SECRET;
+  if (!tokenId || !tokenSecret) {
+    return NextResponse.json(
+      { error: 'Mux не настроен. Видео загружается локально.' },
+      { status: 503 }
+    );
+  }
+
   try {
-    // Создаём загрузку в Mux
+    // Ленивый импорт + создание только при наличии ключей
+    const Mux = (await import('@mux/mux-node')).default;
+    const mux = new Mux({ tokenId, tokenSecret });
+
     const upload = await mux.video.uploads.create({
-      newAssetSettings: {
-        playback_policy: 'public',
-        video_quality: 'basic',
-      },
+      newAssetSettings: { playback_policy: 'public', video_quality: 'basic' },
       cors_origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     });
 
@@ -32,9 +37,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Mux upload error:', error);
-    return NextResponse.json(
-      { error: 'Не удалось создать загрузку' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Не удалось создать загрузку' }, { status: 500 });
   }
 }
